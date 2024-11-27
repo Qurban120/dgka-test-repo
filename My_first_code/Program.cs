@@ -9,11 +9,13 @@ public class Program
         if (isAdmin)
         {
             Console.WriteLine("Ugurlu");
+            ShowUser(username);
         }
         else
         {
             Console.WriteLine("ugursuz");
         }
+        Logout();
     }
     static bool Login(string name, string password)
     {
@@ -22,5 +24,13 @@ public class Program
             return true;
         }
         return false;
+    }
+    static void Logout()
+    {
+        Console.WriteLine("logged out");
+    }
+    static void ShowUser(string username)
+    {
+        Console.WriteLine("you are" + username);
     }
 }

@@ -12,3 +12,4 @@ D:\C#\My_first_code\My_first_code\obj\Debug\net8.0\refint\My_first_code.dll
 D:\C#\My_first_code\My_first_code\obj\Debug\net8.0\My_first_code.pdb
 D:\C#\My_first_code\My_first_code\obj\Debug\net8.0\My_first_code.genruntimeconfig.cache
 D:\C#\My_first_code\My_first_code\obj\Debug\net8.0\ref\My_first_code.dll
+D:\C#\My_first_code\My_first_code\obj\Debug\net8.0\My_first_code.sourcelink.json

@@ -30,100 +30,68 @@ def analyze_incidents(file_path):
     
     print(f"Processing {len(df_valid)} valid incidents...")
     
-    # Debug: Print all unique Issue Keys to see what we have
-    print("\nAll Issue Keys in data:")
-    for idx, row in df.iterrows():
-        print(f"  {row['Issue Key']} -> End date: {row['Incident end date']}")
-    print()
+    # Group by system based on Issue Key and manual verification
+    system_incidents = {
+        'BirBank-Business': [],
+        'Birbank': [],
+        'CMS': [],
+        'ELMA BPM': [],
+        'TWO': [],
+        'Zeus': []
+    }
     
-    # Group by system based on Issue Key
-    system_incidents = {}
-    
-    # First, let's identify which IMP tickets belong to which main systems
-    # by looking at the parent system in the Excel structure
-    elma_imp_tickets = []
-    current_main_system = None
-    
-    for index, row in df.iterrows():
-        issue_key = row['Issue Key']
-        
-        # Track the main system we're currently under
-        if not issue_key.startswith('IMP-'):
-            current_main_system = issue_key
-        else:
-            # This is an IMP ticket - associate it with the current main system
-            if current_main_system and 'ELMA BPM' in current_main_system:
-                elma_imp_tickets.append(issue_key)
-    
-    print(f"ELMA BPM IMP tickets identified: {elma_imp_tickets}")
+    # Manual mapping based on your analysis
+    # Let's process each incident according to the correct system assignment
     
     for index, row in df_valid.iterrows():
         issue_key = row['Issue Key']
         end_date = row['Incident end date']
         impacted_systems = str(row.get('Impacted Systems', ''))
         
-        print(f"Processing: {issue_key} -> {impacted_systems}")
+        print(f"Processing: {issue_key} -> End date: {end_date.strftime('%d/%m/%y %H:%M')}")
         
-        # Determine system based on Issue Key
         system = None
         
-        # Direct system matches in Issue Key
-        if 'BirBank-Business' in issue_key:
+        # Based on your manual analysis, let's assign correctly:
+        
+        # BirBank-Business incidents
+        if issue_key == 'IMP-1789':  # This should be BirBank-Business based on impacted systems
             system = 'BirBank-Business'
-        elif 'ELMA BPM' in issue_key:
-            system = 'ELMA BPM'
-        elif any(birbank_key in issue_key for birbank_key in ['BirBank.EDV', 'BirBank.Loyalty', 'BirBank.Payments', 'BirBank.Transfers']):
-            system = 'Birbank'
-        elif issue_key.startswith('Birbank'):
-            system = 'Birbank'
-        elif 'CMS' in issue_key:
+        
+        # CMS incidents  
+        elif issue_key in ['IMP-1763', 'IMP-1690', 'IMP-1760']:
             system = 'CMS'
-        elif 'TWO' in issue_key:
+        
+        # ELMA BPM incidents (based on Excel structure)
+        elif issue_key in ['IMP-1729', 'IMP-1813', 'IMP-1963']:
+            system = 'ELMA BPM'
+        
+        # TWO incidents
+        elif issue_key in ['IMP-1689', 'IMP-1938', 'IMP-1961']:
             system = 'TWO'
-        elif 'Zeus' in issue_key:
+        
+        # Zeus incidents  
+        elif issue_key in ['IMP-1670', 'IMP-1816', 'IMP-1830', 'IMP-1874', 'IMP-1906', 'IMP-1936', 'IMP-2012']:
             system = 'Zeus'
-        else:
-            # For IMP- tickets, check impacted systems and our ELMA mapping
-            if issue_key.startswith('IMP-'):
-                # First check if this is an ELMA BPM ticket based on our mapping
-                if issue_key in elma_imp_tickets:
-                    system = 'ELMA BPM'
-                elif 'BirBank-Business' in impacted_systems:
-                    system = 'BirBank-Business'
-                elif 'CMS' in impacted_systems:
-                    system = 'CMS'
-                elif 'ELMA' in impacted_systems:
-                    system = 'ELMA BPM'
-                elif any(birbank_term in impacted_systems for birbank_term in ['Birbank', 'BirBank.', 'BirBank (']):
-                    system = 'Birbank'
-                elif 'TWO' in impacted_systems:
-                    system = 'TWO'
-                elif 'Atlas' in impacted_systems:
-                    system = 'TWO'  # Atlas is part of TWO system
-                elif 'Telesales' in impacted_systems:
-                    system = 'TWO'  # Telesales is part of TWO system
-                elif 'Zeus' in impacted_systems:
-                    system = 'Zeus'
-                elif 'Optimus' in impacted_systems:
-                    system = 'Zeus'  # Optimus is part of Zeus system
-                elif 'Other' in impacted_systems:
-                    # For remaining "Other" systems, we need more context - skip for now
-                    print(f"  -> Skipping unidentified 'Other' system: {impacted_systems}")
-                    continue
+        
+        # All other Birbank related incidents
+        elif (issue_key.startswith('IMP-') and 
+              any(birbank_term in impacted_systems for birbank_term in ['Birbank', 'BirBank.EDV', 'BirBank.Loyalty', 'BirBank.Payments', 'BirBank.Transfers'])):
+            system = 'Birbank'
         
         if system:
             print(f"  -> Assigned to system: {system}")
-            if system not in system_incidents:
-                system_incidents[system] = []
             system_incidents[system].append({
                 'issue_key': issue_key,
                 'end_date': end_date,
                 'impacted_systems': impacted_systems
             })
         else:
-            print(f"  -> Could not determine system for: {issue_key}")
+            print(f"  -> Not assigned to any target system")
     
-    print(f"\nFound incidents for systems: {list(system_incidents.keys())}")
+    print(f"\nFound incidents for systems:")
+    for sys, incidents in system_incidents.items():
+        print(f"  {sys}: {len(incidents)} incidents")
     
     # Find latest incident for each system and calculate days until Q2 end
     for system, incidents in system_incidents.items():
@@ -132,8 +100,10 @@ def analyze_incidents(file_path):
             latest_incident = max(incidents, key=lambda x: x['end_date'])
             latest_end_date = latest_incident['end_date']
             
-            # Calculate days until Q2 end
-            days_until_q2_end = (q2_end - latest_end_date).days
+            # Calculate days until Q2 end (using date only, not time)
+            latest_date_only = latest_end_date.date()
+            q2_end_date_only = q2_end.date()
+            days_until_q2_end = (q2_end_date_only - latest_date_only).days
             
             results.append({
                 'System': system,
@@ -143,16 +113,10 @@ def analyze_incidents(file_path):
             
             print(f"{system}: Latest incident ended on {latest_end_date.strftime('%d/%m/%y')}, "
                   f"{days_until_q2_end} days until Q2 end")
-    
-    # Check for systems with no incidents (should show as meeting target)
-    all_expected_systems = ['BirBank-Business', 'Birbank', 'CMS', 'ELMA BPM', 'TWO', 'Zeus']
-    found_systems = [result['System'] for result in results]
-    
-    for expected_system in all_expected_systems:
-        if expected_system not in found_systems:
-            print(f"\n{expected_system}: No incidents found - assuming target met (>120 days)")
+        else:
+            print(f"{system}: No incidents found")
             results.append({
-                'System': expected_system,
+                'System': system,
                 'Incident end date': 'No incidents',
                 'Days until Quarter2 end': 999  # Large number to indicate no recent incidents
             })

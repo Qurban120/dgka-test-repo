@@ -39,6 +39,24 @@ def analyze_incidents(file_path):
     # Group by system based on Issue Key
     system_incidents = {}
     
+    # First, let's identify which IMP tickets belong to which main systems
+    # by looking at the parent system in the Excel structure
+    elma_imp_tickets = []
+    current_main_system = None
+    
+    for index, row in df.iterrows():
+        issue_key = row['Issue Key']
+        
+        # Track the main system we're currently under
+        if not issue_key.startswith('IMP-'):
+            current_main_system = issue_key
+        else:
+            # This is an IMP ticket - associate it with the current main system
+            if current_main_system and 'ELMA BPM' in current_main_system:
+                elma_imp_tickets.append(issue_key)
+    
+    print(f"ELMA BPM IMP tickets identified: {elma_imp_tickets}")
+    
     for index, row in df_valid.iterrows():
         issue_key = row['Issue Key']
         end_date = row['Incident end date']
@@ -65,9 +83,12 @@ def analyze_incidents(file_path):
         elif 'Zeus' in issue_key:
             system = 'Zeus'
         else:
-            # For IMP- tickets, check impacted systems
+            # For IMP- tickets, check impacted systems and our ELMA mapping
             if issue_key.startswith('IMP-'):
-                if 'BirBank-Business' in impacted_systems:
+                # First check if this is an ELMA BPM ticket based on our mapping
+                if issue_key in elma_imp_tickets:
+                    system = 'ELMA BPM'
+                elif 'BirBank-Business' in impacted_systems:
                     system = 'BirBank-Business'
                 elif 'CMS' in impacted_systems:
                     system = 'CMS'
@@ -86,8 +107,8 @@ def analyze_incidents(file_path):
                 elif 'Optimus' in impacted_systems:
                     system = 'Zeus'  # Optimus is part of Zeus system
                 elif 'Other' in impacted_systems:
-                    # For "Other" systems, we need more context - skip for now
-                    print(f"  -> Skipping 'Other' system: {impacted_systems}")
+                    # For remaining "Other" systems, we need more context - skip for now
+                    print(f"  -> Skipping unidentified 'Other' system: {impacted_systems}")
                     continue
         
         if system:

@@ -55,11 +55,11 @@ def analyze_incidents(file_path):
         # Based on your manual analysis, let's assign correctly:
         
         # BirBank-Business incidents
-        if issue_key == 'IMP-1789':  # This should be BirBank-Business based on impacted systems
+        if issue_key == 'IMP-1789':  # 25/04/25 - BirBank-Business (ITAM-1454566)
             system = 'BirBank-Business'
         
         # CMS incidents  
-        elif issue_key in ['IMP-1763', 'IMP-1690', 'IMP-1760']:
+        elif issue_key in ['IMP-1763', 'IMP-1690', 'IMP-1760']:  # Latest: IMP-1763 = 22/04/25
             system = 'CMS'
         
         # ELMA BPM incidents (based on Excel structure)

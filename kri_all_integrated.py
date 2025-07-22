@@ -12,6 +12,7 @@ def analyze_all_kris_from_excel(file_path):
         headers = [cell.value for cell in worksheet[1] if cell.value]
         issue_key_col = next((i for i, h in enumerate(headers) if 'Issue Key' in str(h)), None)
         start_date_col = next((i for i, h in enumerate(headers) if 'Incident start date' in str(h)), None)
+        end_date_col = next((i for i, h in enumerate(headers) if 'Incident end date' in str(h)), None)
         duration_col = next((i for i, h in enumerate(headers) if 'Incident duration' in str(h)), None)
         
         if issue_key_col is None or start_date_col is None or duration_col is None:
@@ -34,6 +35,7 @@ def analyze_all_kris_from_excel(file_path):
                 
             issue_key = row[issue_key_col] if issue_key_col < len(row) else ""
             start_date = row[start_date_col] if start_date_col < len(row) else ""
+            end_date = row[end_date_col] if end_date_col is not None and end_date_col < len(row) else ""
             duration = row[duration_col] if duration_col < len(row) else ""
             
             # Check if critical system
@@ -79,10 +81,21 @@ def analyze_all_kris_from_excel(file_path):
                             system_last_incidents[current_critical_system] = incident_date
                 
                 # KRI12, KRI13, KRI19: Duration-based analysis (duration is in minutes)
+                # Check if end date is missing (marked as "-") - this means RTO exceeded
+                end_date_missing = (str(end_date).strip() == "-" or str(end_date).strip() == "")
+                
                 try:
                     duration_minutes = int(duration) if duration and str(duration).isdigit() else 0
                     
-                    if duration_minutes > 0:
+                    # If end date is missing, treat as RTO exceeded
+                    if end_date_missing and current_critical_system:
+                        rto_exceeded_incidents.append({
+                            "System": current_critical_system,
+                            "Incident": issue_key,
+                            "RTO_Exceeded_Minutes": "Ongoing (no end date)",
+                            "RTO_Exceeded_Hours": "Ongoing"
+                        })
+                    elif duration_minutes > 0:
                         # KRI19: Collect all durations
                         if current_critical_system not in system_durations:
                             system_durations[current_critical_system] = []
@@ -275,12 +288,12 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     kri8_not_met = len([r for r in kri8_results if r['Status'] == 'TARGET NOT MET'])
     html_content += f"""
     <h2>KRI8 - Days Since Last Incident</h2>
-    <p class="total-count">Systems not meeting 120+ days target: {kri8_not_met}</p>
     <div class="summary">
         <strong>KRI8 Definition:</strong> Days from last incident in critical system to end of quarter<br>
         <strong>Target:</strong> More than 120 days (systems should remain incident-free)<br>
         <strong>Quarter End:</strong> June 30, 2025
     </div>
+    <p class="total-count">Systems not meeting 120+ days target: {kri8_not_met}</p>
     <table>
         <tr>
             <th>System</th>
@@ -304,16 +317,21 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     <hr>
     """
     
-    # KRI10 Section
-    kri10_exceeded = len([r for r in kri10_results if r['Count'] > 2])
+    # KRI10 Section - Count unique systems exceeding threshold
+    systems_exceeding_threshold = set()
+    for result in kri10_results:
+        if result['Count'] > 2:
+            systems_exceeding_threshold.add(result['System'])
+    kri10_exceeded = len(systems_exceeding_threshold)
+    
     html_content += f"""
     <h2>KRI10 - Monthly Incident Counts</h2>
-    <p class="total-count">Systems exceeding monthly threshold (>2): {kri10_exceeded}</p>
     <div class="summary">
         <strong>KRI10 Definition:</strong> Number of incidents affecting critical systems per month<br>
         <strong>Threshold:</strong> Maximum 2 incidents per system per month<br>
         <strong>Period:</strong> Q2 2025 (April, May, June)
     </div>
+    <p class="total-count">Systems exceeding monthly threshold (>2): {kri10_exceeded}</p>
     <table>
         <tr>
             <th>System</th>
@@ -339,12 +357,13 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     total_rto_exceeded = len(kri12_results)
     html_content += f"""
     <h2>KRI12 - RTO Exceeded Incidents</h2>
-    <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <div class="summary">
         <strong>KRI12 Definition:</strong> Incidents resolved longer than RTO (>2 hours)<br>
         <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
-        <strong>Target:</strong> 0 incidents exceeding RTO for each system
+        <strong>Target:</strong> 0 incidents exceeding RTO for each system<br>
+        <strong>Note:</strong> Incidents with missing end dates are considered RTO exceeded
     </div>
+    <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <table>
         <tr>
             <th>System</th>
@@ -369,12 +388,12 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     kri13_exceeded = len([r for r in kri13_results if r['Count'] > 2])
     html_content += f"""
     <h2>KRI13 - Within RTO Incident Counts</h2>
-    <p class="total-count">Systems with too many within-RTO incidents (>2): {kri13_exceeded}</p>
     <div class="summary">
         <strong>KRI13 Definition:</strong> Number of incidents resolved within RTO (≤2 hours)<br>
         <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
         <strong>Threshold:</strong> Maximum 2 incidents per system (if more, too many incidents occurring)
     </div>
+    <p class="total-count">Systems with too many within-RTO incidents (>2): {kri13_exceeded}</p>
     <table>
         <tr>
             <th>System</th>
@@ -400,12 +419,12 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     kri19_exceeded = len([r for r in kri19_results if r['Average_Minutes'] > 120])
     html_content += f"""
     <h2>KRI19 - Average Resolution Time</h2>
-    <p class="total-count">Systems with average time exceeding RTO: {kri19_exceeded}</p>
     <div class="summary">
         <strong>KRI19 Definition:</strong> Average incident resolution time per system<br>
         <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
         <strong>Target:</strong> Average should be less than RTO for each system
     </div>
+    <p class="total-count">Systems with average time exceeding RTO: {kri19_exceeded}</p>
     <table>
         <tr>
             <th>System</th>

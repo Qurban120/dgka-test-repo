@@ -272,8 +272,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
 """
 
     # KRI8 Section
-    html_content += """
+    kri8_not_met = len([r for r in kri8_results if r['Status'] == 'TARGET NOT MET'])
+    html_content += f"""
     <h2>KRI8 - Days Since Last Incident</h2>
+    <p class="total-count">Systems not meeting 120+ days target: {kri8_not_met}</p>
     <div class="summary">
         <strong>KRI8 Definition:</strong> Days from last incident in critical system to end of quarter<br>
         <strong>Target:</strong> More than 120 days (systems should remain incident-free)<br>
@@ -303,8 +305,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     """
     
     # KRI10 Section
-    html_content += """
+    kri10_exceeded = len([r for r in kri10_results if r['Count'] > 2])
+    html_content += f"""
     <h2>KRI10 - Monthly Incident Counts</h2>
+    <p class="total-count">Systems exceeding monthly threshold (>2): {kri10_exceeded}</p>
     <div class="summary">
         <strong>KRI10 Definition:</strong> Number of incidents affecting critical systems per month<br>
         <strong>Threshold:</strong> Maximum 2 incidents per system per month<br>
@@ -335,12 +339,12 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     total_rto_exceeded = len(kri12_results)
     html_content += f"""
     <h2>KRI12 - RTO Exceeded Incidents</h2>
+    <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <div class="summary">
         <strong>KRI12 Definition:</strong> Incidents resolved longer than RTO (>2 hours)<br>
         <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
         <strong>Target:</strong> 0 incidents exceeding RTO for each system
     </div>
-    <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <table>
         <tr>
             <th>System</th>
@@ -362,8 +366,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     """
     
     # KRI13 Section
-    html_content += """
+    kri13_exceeded = len([r for r in kri13_results if r['Count'] > 2])
+    html_content += f"""
     <h2>KRI13 - Within RTO Incident Counts</h2>
+    <p class="total-count">Systems with too many within-RTO incidents (>2): {kri13_exceeded}</p>
     <div class="summary">
         <strong>KRI13 Definition:</strong> Number of incidents resolved within RTO (≤2 hours)<br>
         <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
@@ -391,8 +397,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     """
     
     # KRI19 Section
-    html_content += """
+    kri19_exceeded = len([r for r in kri19_results if r['Average_Minutes'] > 120])
+    html_content += f"""
     <h2>KRI19 - Average Resolution Time</h2>
+    <p class="total-count">Systems with average time exceeding RTO: {kri19_exceeded}</p>
     <div class="summary">
         <strong>KRI19 Definition:</strong> Average incident resolution time per system<br>
         <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>

@@ -16,8 +16,8 @@ def analyze_kri8_from_excel(file_path):
         if issue_key_col is None or start_date_col is None:
             return []
         
-        # KRI8 target systems
-        target_systems = ["Birbank", "BirBank-Business", "ODIN", "ELMA BPM", "Optimus", "CMS", "TWO", "Zeus"]
+        # KRI8 target systems (only existing ones from data)
+        target_systems = ["Birbank", "BirBank-Business", "ELMA BPM", "CMS", "TWO", "Zeus"]
         
         # Group Birbank systems (except BirBank-Business)
         birbank_systems = ["BirBank.EDV", "BirBank.Loyalty", "BirBank.Payments", "BirBank.Transfers", "Birbank"]
@@ -122,6 +122,8 @@ def generate_html_report(results):
     <p style="color: green; font-weight: bold; font-size: 18px;">
         Systems meeting target: {met_target_count} / {len(results)}
     </p>
+    
+    <p><strong>Note:</strong> Analysis includes 6 critical systems found in the data. ODIN and Optimus are not present in the Issue Key column.</p>
     
     <table>
         <tr>

@@ -158,6 +158,13 @@ def generate_simple_html_report(results):
 <html>
 <head>
     <title>KRI10 - Critical Systems Incident Analysis Q2 2025</title>
+    <style>
+        .exceeded {{
+            background-color: #ffcccc;
+            color: #cc0000;
+            font-weight: bold;
+        }}
+    </style>
 </head>
 <body>
     <h1>KRI10 - Critical Systems Incident Analysis</h1>
@@ -165,6 +172,7 @@ def generate_simple_html_report(results):
     
     <p><strong>KRI10 Definition:</strong> Number of incidents affecting critical systems</p>
     <p><strong>Threshold:</strong> Maximum 2 incidents per critical system per month</p>
+    <p><strong>Note:</strong> <span style="background-color: #ffcccc; color: #cc0000; font-weight: bold;">Red rows</span> indicate systems exceeding the threshold (>2 incidents/month)</p>
     
     <table border="1" cellpadding="5" cellspacing="0">
         <tr>
@@ -175,8 +183,11 @@ def generate_simple_html_report(results):
     
     # Add table rows
     for result in results:
+        # Check if count exceeds threshold (>2)
+        row_class = ' class="exceeded"' if result['Count of Incidents'] > 2 else ''
+        
         html_content += f"""
-        <tr>
+        <tr{row_class}>
             <td>{result['System']}</td>
             <td>{result['Month']}</td>
             <td>{result['Count of Incidents']}</td>
@@ -188,6 +199,7 @@ def generate_simple_html_report(results):
     <h3>Summary</h3>
     <p>Total incidents analyzed: {sum(r['Count of Incidents'] for r in results)}</p>
     <p>Critical systems monitored: {len(set(r['System'] for r in results))}</p>
+    <p>Systems exceeding threshold: {len([r for r in results if r['Count of Incidents'] > 2])}</p>
     <p>Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     
 </body>

@@ -1,19 +1,26 @@
 import os
 from datetime import datetime
 
-def extract_month_from_date(date_str):
-    """Extract month from date string in format DD/MM/YY HH:MM:SS"""
-    if not date_str or date_str == "-" or date_str.strip() == "":
+def extract_month_from_date(date_obj):
+    """Extract month from date object or string in format DD/MM/YY HH:MM:SS"""
+    if not date_obj or date_obj == "-":
         return None
     
     try:
-        # Convert to string and strip whitespace
-        date_str = str(date_str).strip()
-        # Extract the date part (before space)
-        date_part = date_str.split()[0]
-        # Parse DD/MM/YY format
-        day, month, year = date_part.split('/')
-        month_num = int(month)
+        # Check if it's already a datetime object
+        if hasattr(date_obj, 'month'):
+            month_num = date_obj.month
+        else:
+            # Convert to string and strip whitespace
+            date_str = str(date_obj).strip()
+            if date_str == "" or date_str == "-":
+                return None
+            
+            # Extract the date part (before space)
+            date_part = date_str.split()[0]
+            # Parse DD/MM/YY format
+            day, month, year = date_part.split('/')
+            month_num = int(month)
         
         # Map month numbers to names for Q2
         month_mapping = {

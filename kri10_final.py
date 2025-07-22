@@ -1,4 +1,3 @@
-import csv
 import os
 from datetime import datetime
 
@@ -44,49 +43,83 @@ def extract_critical_system_from_issue_key(issue_key):
     
     return issue_key
 
-def analyze_kri10_from_csv(file_path):
-    """Analyze KRI10 from CSV file"""
+def analyze_kri10_from_excel(file_path):
+    """Analyze KRI10 from Excel file directly"""
     
     try:
+        # Try to import openpyxl
+        try:
+            from openpyxl import load_workbook
+        except ImportError:
+            print("❌ openpyxl library not found!")
+            print("Please install it using: pip install openpyxl")
+            return []
+        
+        # Load Excel workbook
+        print(f"📖 Loading Excel file: {file_path}")
+        workbook = load_workbook(file_path)
+        worksheet = workbook.active
+        
+        # Get headers from first row
+        headers = []
+        for cell in worksheet[1]:
+            if cell.value:
+                headers.append(cell.value)
+        
+        print(f"Excel columns found: {headers}")
+        
+        # Find column indices
+        issue_key_col = None
+        start_date_col = None
+        
+        for i, header in enumerate(headers):
+            if 'Issue Key' in str(header):
+                issue_key_col = i
+            elif 'Incident start date' in str(header):
+                start_date_col = i
+        
+        if issue_key_col is None or start_date_col is None:
+            print("❌ Required columns not found!")
+            return []
+        
         system_month_counts = {}
         current_critical_system = None
         
-        with open(file_path, 'r', encoding='utf-8') as file:
-            csv_reader = csv.DictReader(file)
+        row_count = 0
+        incident_count = 0
+        
+        # Process each row (starting from row 2, skipping header)
+        for row in worksheet.iter_rows(min_row=2, values_only=True):
+            row_count += 1
             
-            print(f"CSV columns found: {csv_reader.fieldnames}")
-            
-            row_count = 0
-            incident_count = 0
-            
-            for row in csv_reader:
-                row_count += 1
+            if len(row) <= max(issue_key_col, start_date_col):
+                continue
                 
-                issue_key = row.get('Issue Key', '')
-                start_date = row.get('Incident start date', '')
-                
-                # Check if this row defines a critical system
-                critical_system = extract_critical_system_from_issue_key(issue_key)
-                
-                if critical_system:
-                    # This is a critical system definition row
-                    current_critical_system = critical_system
-                    print(f"Found critical system: {critical_system}")
-                elif issue_key.startswith('IMP-') and current_critical_system:
-                    # This is an incident belonging to the current critical system
-                    incident_count += 1
-                    
-                    # Extract month from start date
-                    month = extract_month_from_date(start_date)
-                    
-                    # Only count incidents in Q2 months (April, May, June)
-                    if month:
-                        key = (current_critical_system, month)
-                        if key not in system_month_counts:
-                            system_month_counts[key] = 0
-                        system_month_counts[key] += 1
+            issue_key = row[issue_key_col] if issue_key_col < len(row) else ""
+            start_date = row[start_date_col] if start_date_col < len(row) else ""
             
-            print(f"\nProcessed {row_count} rows, found {incident_count} incidents")
+            # Check if this row defines a critical system
+            critical_system = extract_critical_system_from_issue_key(issue_key)
+            
+            if critical_system:
+                # This is a critical system definition row
+                current_critical_system = critical_system
+                print(f"Found critical system: {critical_system}")
+            elif str(issue_key).startswith('IMP-') and current_critical_system:
+                # This is an incident belonging to the current critical system
+                incident_count += 1
+                
+                # Extract month from start date
+                month = extract_month_from_date(start_date)
+                
+                # Only count incidents in Q2 months (April, May, June)
+                if month:
+                    key = (current_critical_system, month)
+                    if key not in system_month_counts:
+                        system_month_counts[key] = 0
+                    system_month_counts[key] += 1
+        
+        print(f"\nProcessed {row_count} rows, found {incident_count} incidents")
         
         # Create results list
         results = []
@@ -106,7 +139,9 @@ def analyze_kri10_from_csv(file_path):
         return results
         
     except Exception as e:
-        print(f"Error reading CSV file: {e}")
+        print(f"Error reading Excel file: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def generate_simple_html_report(results):
@@ -158,40 +193,21 @@ def main():
     
     # Excel file path (as specified by user)
     excel_file_path = r"C:\Users\XaniyevQX\Desktop\AUTOMATION_NEW\Incident_Report_for_GRC__KRI_ (1).xlsx"
-    csv_file_path = "incident_data_converted.csv"
     
     print("KRI10 - Critical Systems Incident Analysis")
     print("=" * 50)
     print(f"Excel file path: {excel_file_path}")
     
-    # Check if Excel file exists (for Windows environment)
-    if os.path.exists(excel_file_path):
-        print("✅ Excel file found!")
-        print("\n⚠️  IMPORTANT: Please convert Excel to CSV format first!")
-        print("Steps:")
-        print("1. Open the Excel file")
-        print("2. Go to File -> Save As")
-        print("3. Choose 'CSV (Comma delimited) (*.csv)' format")
-        print("4. Save as 'incident_data_converted.csv' in the same directory as this script")
-        print("5. Run this script again")
-        return
-    else:
-        print("⚠️  Excel file not found at specified path")
-        print("Checking for CSV file instead...")
-    
-    # Check for CSV file
-    if not os.path.exists(csv_file_path):
-        print(f"\n❌ CSV file '{csv_file_path}' not found!")
-        print("\nPlease:")
-        print("1. Convert your Excel file to CSV format")
-        print("2. Save it as 'incident_data_converted.csv' in the same directory")
-        print("3. Run this script again")
+    # Check if Excel file exists
+    if not os.path.exists(excel_file_path):
+        print(f"❌ Excel file not found at: {excel_file_path}")
+        print("Please check the file path and try again.")
         return
     
-    print(f"✅ CSV file found: {csv_file_path}")
+    print("✅ Excel file found!")
     
-    # Analyze the data from CSV
-    results = analyze_kri10_from_csv(csv_file_path)
+    # Analyze the data directly from Excel
+    results = analyze_kri10_from_excel(excel_file_path)
     
     if not results:
         print("❌ No data found or error occurred!")

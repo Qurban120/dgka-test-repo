@@ -250,210 +250,137 @@ def process_kri19(system_durations):
     
     return results
 
-def generate_comprehensive_html_report(kri8_results, kri10_results, kri12_results, kri13_results, kri19_results):
-    html_content = f"""<!DOCTYPE html>
+def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri13_results, kri19_results):
+    html_content = """<!DOCTYPE html>
 <html>
 <head>
-    <title>Comprehensive KRI Analysis Report - Q2 2025</title>
+    <title>KRI Analysis Report</title>
     <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
-        .container {{ max-width: 1400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-        h1 {{ color: #2c3e50; text-align: center; margin-bottom: 30px; }}
-        h2 {{ color: #34495e; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 40px; }}
-        table {{ border-collapse: collapse; width: 100%; margin-bottom: 30px; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #34495e; color: white; font-weight: bold; }}
-        tr:nth-child(even) {{ background-color: #f2f2f2; }}
-        .exceeded, .not-met {{ background-color: #ffcccc; color: #cc0000; font-weight: bold; }}
-        .met {{ background-color: #ccffcc; color: #008000; font-weight: bold; }}
-        .summary {{ background-color: #e8f4f8; padding: 15px; margin-bottom: 20px; border-left: 4px solid #3498db; }}
-        .kri-summary {{ display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; }}
-        .kri-box {{ background-color: #ecf0f1; padding: 15px; border-radius: 5px; text-align: center; margin: 5px; min-width: 150px; }}
-        .exceeded-count {{ color: red; font-weight: bold; font-size: 18px; }}
-        .met-count {{ color: green; font-weight: bold; font-size: 18px; }}
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .exceeded { background-color: #ffcccc; }
+        h2 { margin-top: 40px; }
+        .total-count { color: red; font-weight: bold; font-size: 18px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Comprehensive KRI Analysis Report</h1>
-        <h3 style="text-align: center; color: #666;">Q2 2025 (April - June)</h3>
-        
-        <div class="kri-summary">
-            <div class="kri-box">
-                <h4>KRI8</h4>
-                <div class="met-count">{len([r for r in kri8_results if r['Status'] == 'TARGET MET'])}</div>
-                <p>Systems meeting 120+ days target</p>
-            </div>
-            <div class="kri-box">
-                <h4>KRI10</h4>
-                <div class="exceeded-count">{len([r for r in kri10_results if r['Count'] > 2])}</div>
-                <p>Systems exceeding monthly threshold</p>
-            </div>
-            <div class="kri-box">
-                <h4>KRI12</h4>
-                <div class="exceeded-count">{len(kri12_results)}</div>
-                <p>Incidents exceeding RTO</p>
-            </div>
-            <div class="kri-box">
-                <h4>KRI13</h4>
-                <div class="exceeded-count">{len([r for r in kri13_results if r['Count'] > 2])}</div>
-                <p>Systems with too many within-RTO incidents</p>
-            </div>
-            <div class="kri-box">
-                <h4>KRI19</h4>
-                <div class="exceeded-count">{len([r for r in kri19_results if r['Average_Seconds'] > 7200])}</div>
-                <p>Systems with average time > RTO</p>
-            </div>
-        </div>"""
-    
+    <h1>KRI Analysis Report</h1>
+"""
+
     # KRI8 Section
-    html_content += f"""
-        <h2>KRI8 - Days Since Last Incident</h2>
-        <div class="summary">
-            <strong>Definition:</strong> Days from last incident in critical system to end of quarter<br>
-            <strong>Target:</strong> More than 120 days (systems should remain incident-free)<br>
-            <strong>Quarter End:</strong> June 30, 2025
-        </div>
-        <table>
-            <tr>
-                <th>System</th>
-                <th>Last Incident Date</th>
-                <th>Days Since Last Incident</th>
-                <th>Status</th>
-            </tr>"""
+    html_content += """
+    <h2>KRI8 - Days Since Last Incident</h2>
+    <table>
+        <tr>
+            <th>System</th>
+            <th>Last Incident Date</th>
+            <th>Days Since Last Incident</th>
+            <th>Status</th>
+        </tr>"""
     
     for result in kri8_results:
-        row_class = ' class="met"' if result['Status'] == 'TARGET MET' else ' class="not-met"'
+        row_class = ' class="exceeded"' if result['Status'] == 'TARGET NOT MET' else ''
         html_content += f"""
-            <tr{row_class}>
-                <td>{result['System']}</td>
-                <td>{result['Last_Incident_Date']}</td>
-                <td>{result['Days_Since_Last']}</td>
-                <td>{result['Status']}</td>
-            </tr>"""
+        <tr{row_class}>
+            <td>{result['System']}</td>
+            <td>{result['Last_Incident_Date']}</td>
+            <td>{result['Days_Since_Last']}</td>
+            <td>{result['Status']}</td>
+        </tr>"""
     
     # KRI10 Section
-    html_content += f"""
-        </table>
-        
-        <h2>KRI10 - Monthly Incident Counts</h2>
-        <div class="summary">
-            <strong>Definition:</strong> Number of incidents affecting critical systems per month<br>
-            <strong>Threshold:</strong> Maximum 2 incidents per system per month
-        </div>
-        <table>
-            <tr>
-                <th>System</th>
-                <th>Month</th>
-                <th>Count of Incidents</th>
-                <th>Status</th>
-            </tr>"""
+    html_content += """
+    </table>
+    
+    <h2>KRI10 - Monthly Incident Counts</h2>
+    <table>
+        <tr>
+            <th>System</th>
+            <th>Month</th>
+            <th>Count of Incidents</th>
+        </tr>"""
     
     for result in kri10_results:
         row_class = ' class="exceeded"' if result['Count'] > 2 else ''
         html_content += f"""
-            <tr{row_class}>
-                <td>{result['System']}</td>
-                <td>{result['Month']}</td>
-                <td>{result['Count']}</td>
-                <td>{result['Status']}</td>
-            </tr>"""
+        <tr{row_class}>
+            <td>{result['System']}</td>
+            <td>{result['Month']}</td>
+            <td>{result['Count']}</td>
+        </tr>"""
     
     # KRI12 Section
+    total_rto_exceeded = len(kri12_results)
     html_content += f"""
-        </table>
-        
-        <h2>KRI12 - RTO Exceeded Incidents</h2>
-        <div class="summary">
-            <strong>Definition:</strong> Incidents resolved longer than RTO (>2 hours)<br>
-            <strong>Target:</strong> 0 incidents exceeding RTO for each system
-        </div>
-        <table>
-            <tr>
-                <th>System</th>
-                <th>Incident</th>
-                <th>Duration (Seconds)</th>
-                <th>Duration (Hours)</th>
-            </tr>"""
+    </table>
     
-    if kri12_results:
-        for result in kri12_results:
-            html_content += f"""
-            <tr class="exceeded">
-                <td>{result['System']}</td>
-                <td>{result['Incident']}</td>
-                <td>{result['RTO_Exceeded_Seconds']}</td>
-                <td>{result['RTO_Exceeded_Hours']}</td>
-            </tr>"""
-    else:
-        html_content += """
-            <tr>
-                <td colspan="4" style="text-align: center; color: green; font-weight: bold;">
-                    ✅ No incidents exceeded RTO threshold
-                </td>
-            </tr>"""
+    <h2>KRI12 - RTO Exceeded Incidents</h2>
+    <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
+    <table>
+        <tr>
+            <th>System</th>
+            <th>Incident</th>
+            <th>RTO time which more than normal RTP</th>
+        </tr>"""
+    
+    for result in kri12_results:
+        html_content += f"""
+        <tr class="exceeded">
+            <td>{result['System']}</td>
+            <td>{result['Incident']}</td>
+            <td>{result['RTO_Exceeded_Seconds']}</td>
+        </tr>"""
     
     # KRI13 Section
-    html_content += f"""
-        </table>
-        
-        <h2>KRI13 - Within RTO Incident Counts</h2>
-        <div class="summary">
-            <strong>Definition:</strong> Number of incidents resolved within RTO (≤2 hours)<br>
-            <strong>Threshold:</strong> Maximum 2 incidents per system (if more, too many incidents occurring)
-        </div>
-        <table>
-            <tr>
-                <th>System</th>
-                <th>Incidents Within RTO</th>
-                <th>Status</th>
-            </tr>"""
+    html_content += """
+    </table>
+    
+    <h2>KRI13 - Within RTO Incident Counts</h2>
+    <table>
+        <tr>
+            <th>System</th>
+            <th>Incidents Within RTO</th>
+            <th>Status</th>
+        </tr>"""
     
     for result in kri13_results:
         row_class = ' class="exceeded"' if result['Count'] > 2 else ''
         html_content += f"""
-            <tr{row_class}>
-                <td>{result['System']}</td>
-                <td>{result['Count']}</td>
-                <td>{result['Status']}</td>
-            </tr>"""
+        <tr{row_class}>
+            <td>{result['System']}</td>
+            <td>{result['Count']}</td>
+            <td>{result['Status']}</td>
+        </tr>"""
     
     # KRI19 Section
-    html_content += f"""
-        </table>
-        
-        <h2>KRI19 - Average Resolution Time</h2>
-        <div class="summary">
-            <strong>Definition:</strong> Average incident resolution time per system<br>
-            <strong>Target:</strong> Average should be less than RTO (2 hours = 7200 seconds)
-        </div>
-        <table>
-            <tr>
-                <th>System</th>
-                <th>Total Incidents</th>
-                <th>Average Duration (Seconds)</th>
-                <th>Average Duration (Hours)</th>
-                <th>Status</th>
-            </tr>"""
+    html_content += """
+    </table>
+    
+    <h2>KRI19 - Average Resolution Time</h2>
+    <table>
+        <tr>
+            <th>System</th>
+            <th>Total Incidents</th>
+            <th>Average Duration (Seconds)</th>
+            <th>Average Duration (Hours)</th>
+            <th>Status</th>
+        </tr>"""
     
     for result in kri19_results:
         row_class = ' class="exceeded"' if result['Average_Seconds'] > 7200 else ''
         html_content += f"""
-            <tr{row_class}>
-                <td>{result['System']}</td>
-                <td>{result['Incident_Count']}</td>
-                <td>{result['Average_Seconds']}</td>
-                <td>{result['Average_Hours']}</td>
-                <td>{result['Status']}</td>
-            </tr>"""
+        <tr{row_class}>
+            <td>{result['System']}</td>
+            <td>{result['Incident_Count']}</td>
+            <td>{result['Average_Seconds']}</td>
+            <td>{result['Average_Hours']}</td>
+            <td>{result['Status']}</td>
+        </tr>"""
     
-    html_content += f"""
-        </table>
-        
-        <div style="margin-top: 30px; text-align: center; color: #666; font-size: 12px;">
-            Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-        </div>
-    </div>
+    html_content += """
+    </table>
 </body>
 </html>"""
     
@@ -476,8 +403,8 @@ def main():
     kri13_results = process_kri13(system_within_rto_counts)
     kri19_results = process_kri19(system_durations)
     
-    # Generate comprehensive HTML report
-    html_content = generate_comprehensive_html_report(kri8_results, kri10_results, kri12_results, kri13_results, kri19_results)
+    # Generate simple HTML report
+    html_content = generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri13_results, kri19_results)
     
     # Write to file
     with open('KRI_Complete_Analysis_Report.html', 'w', encoding='utf-8') as f:

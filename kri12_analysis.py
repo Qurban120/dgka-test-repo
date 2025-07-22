@@ -159,6 +159,10 @@ def generate_kri12_html_report(results):
     <p><strong>RTO Threshold:</strong> 2 hours (7200 seconds)</p>
     <p><strong>Target Value:</strong> 0 incidents exceeding RTO for each system</p>
     
+    <p style="color: red; font-weight: bold; font-size: 18px;">
+        Total incidents exceeding RTO: {len(results)}
+    </p>
+    
     <table>
         <tr>
             <th>System</th>
@@ -185,40 +189,12 @@ def generate_kri12_html_report(results):
             </td>
         </tr>"""
     
-    # Group by system for summary
-    system_counts = {}
-    for result in results:
-        system = result['System']
-        if system not in system_counts:
-            system_counts[system] = 0
-        system_counts[system] += 1
-    
     html_content += f"""
     </table>
     
-    <div class="summary">
-        <h3>KRI12 Summary</h3>
-        <p><strong>Total incidents exceeding RTO:</strong> {len(results)}</p>
-        <p><strong>Critical systems affected:</strong> {len(system_counts)}</p>
-        
-        <h4>Breakdown by System:</h4>
-        <ul>"""
-    
-    if system_counts:
-        for system, count in sorted(system_counts.items()):
-            html_content += f"<li><strong>{system}:</strong> {count} incident(s) exceeding RTO</li>"
-    else:
-        html_content += "<li style='color: green;'>✅ All systems within RTO limits</li>"
-    
-    html_content += f"""
-        </ul>
-        
-        <p><strong>KRI12 Status:</strong> 
-        {"❌ FAILED - " + str(len(results)) + " incidents exceeded RTO" if results else "✅ PASSED - All incidents within RTO limits"}
-        </p>
-        
-        <p><strong>Report generated on:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-    </div>
+    <p style="margin-top: 20px; font-size: 12px; color: #666;">
+        Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    </p>
     
 </body>
 </html>"""

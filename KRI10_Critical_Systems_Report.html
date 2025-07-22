@@ -1,0 +1,258 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KRI10 - Critical Systems Incident Analysis Q2 2025</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background-color: #f5f5f5;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #2c3e50;
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .kri-info {
+                background-color: #e8f4f8;
+                padding: 15px;
+                border-left: 4px solid #3498db;
+                margin-bottom: 20px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }
+            th, td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #34495e;
+                color: white;
+                font-weight: bold;
+            }
+            tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+            tr:hover {
+                background-color: #e8f4f8;
+            }
+            .exceeded {
+                background-color: #ffebee !important;
+                color: #c62828;
+                font-weight: bold;
+            }
+            .within-limit {
+                background-color: #e8f5e8 !important;
+                color: #2e7d32;
+            }
+            .summary {
+                margin-top: 30px;
+                padding: 15px;
+                background-color: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 4px;
+            }
+            .report-date {
+                text-align: right;
+                color: #666;
+                font-style: italic;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>KRI10 - Critical Systems Incident Analysis</h1>
+            <h2>Q2 2025 (April - June)</h2>
+            
+            <div class="kri-info">
+                <strong>KRI10 Definition:</strong> Number of incidents affecting critical systems. 
+                <br><strong>Threshold:</strong> Maximum 2 incidents per critical system per month.
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>System</th>
+                        <th>Month</th>
+                        <th>Count of Incidents</th>
+                        <th>KRI Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+    
+                    <tr>
+                        <td>BirBank-Business</td>
+                        <td>April</td>
+                        <td>3</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.EDV</td>
+                        <td>May</td>
+                        <td>2</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.EDV</td>
+                        <td>June</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Loyalty</td>
+                        <td>April</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Loyalty</td>
+                        <td>June</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Payments</td>
+                        <td>April</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Payments</td>
+                        <td>May</td>
+                        <td>3</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Payments</td>
+                        <td>June</td>
+                        <td>3</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Transfers</td>
+                        <td>May</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>BirBank.Transfers</td>
+                        <td>June</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>Birbank</td>
+                        <td>April</td>
+                        <td>4</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>Birbank</td>
+                        <td>June</td>
+                        <td>3</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>CMS</td>
+                        <td>April</td>
+                        <td>3</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>ELMA BPM</td>
+                        <td>April</td>
+                        <td>2</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>ELMA BPM</td>
+                        <td>June</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>TWO</td>
+                        <td>April</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>TWO</td>
+                        <td>June</td>
+                        <td>4</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>Zeus</td>
+                        <td>April</td>
+                        <td>1</td>
+                        <td class="within-limit">WITHIN LIMIT</td>
+                    </tr>
+        
+                    <tr>
+                        <td>Zeus</td>
+                        <td>May</td>
+                        <td>4</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                    <tr>
+                        <td>Zeus</td>
+                        <td>June</td>
+                        <td>3</td>
+                        <td class="exceeded">EXCEEDED</td>
+                    </tr>
+        
+                </tbody>
+            </table>
+            
+            <div class="summary">
+                <h3>Summary</h3>
+                <ul>
+                    <li><strong>Total System-Month combinations with incidents:</strong> 20</li>
+                    <li><strong>Total incidents recorded:</strong> 43</li>
+                    <li><strong>System-Month combinations exceeding KRI threshold:</strong> 9</li>
+                    <li><strong>Compliance rate:</strong> 55.0%</li>
+                </ul>
+            </div>
+            
+            <div class="report-date">
+                Report generated on: 2025-07-22 05:02:41
+            </div>
+        </div>
+    </body>
+    </html>
+    

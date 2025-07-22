@@ -38,18 +38,20 @@ pip install pandas openpyxl xlrd
 
 ## Usage
 
-### Option 1: Use with your own data files
-1. Place your Excel files in the same directory as the script:
-   - Risk data file: `sample_risk_data.xlsx`
-   - KRI data file: `sample_kri_data.xlsx`
+### File Paths Configuration
+The script is configured to use these specific file paths:
 
-2. Run the script:
-```bash
-python combined_risk_kri_analysis.py
+```python
+# Risk analysis file
+risk_file_path = r"C:\Users\XaniyevQX\Desktop\AUTOMATION_NEW\RCM_QTLD report_Report (1).xls"
+
+# KRI analysis file  
+kri_file_path = r"C:\Users\RzazadaTN\Desktop\Incident Report.xlsx"
 ```
 
-### Option 2: Use with sample data (Demo)
-The script automatically creates sample data if the required files are not found. Simply run:
+**Note**: If your files are in different locations, update these paths in the `main()` function.
+
+### Run the Analysis
 ```bash
 python combined_risk_kri_analysis.py
 ```

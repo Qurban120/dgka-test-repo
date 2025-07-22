@@ -636,117 +636,14 @@ def generate_combined_html_report(risk_data, kri8_results, kri10_results, kri12_
     
     return html_content
 
-def create_sample_risk_data():
-    """Create sample risk data for demonstration"""
-    import pandas as pd
-    from datetime import datetime, timedelta
-    import random
-    
-    # Sample risk data
-    risk_statuses = ['aktiv', 'gecikdirilmiş', 'icra tarixi vaxtında təqdim edilməmiş', 'bağlanmış', 'ləğv edilmiş']
-    risk_types = ['İT', 'Operasional', 'Kredit', 'Bazar']
-    risk_levels = ['Kritik', 'Yüksək', 'Orta', 'Aşağı']
-    owners = ['İT Departamenti', 'Risk Departamenti', 'Maliyyə Departamenti', '-', None]
-    controls = ['Sistem yeniləməsi', 'Prosedur təkmilləşdirilməsi', 'Personalın öyrədilməsi', '-', None]
-    
-    data = []
-    for i in range(100):
-        # Generate dates in 2025, Q2 (April-June)
-        if random.random() < 0.3:  # 30% chance for Q2 2025
-            date = datetime(2025, random.choice([4, 5, 6]), random.randint(1, 28))
-        else:
-            date = datetime(random.choice([2024, 2025]), random.randint(1, 12), random.randint(1, 28))
-            
-        data.append({
-            'Risk status': random.choice(risk_statuses),
-            'Risk növü': random.choice(risk_types),
-            'Məxsusi risk dərəcəsi': random.choice(risk_levels),
-            'Riskin aşkarlanma tarixi': date,
-            'Prosesin sahibi': random.choice(owners),
-            'Nəzarət tədbirinin təsviri': random.choice(controls)
-        })
-    
-    df = pd.DataFrame(data)
-    df.to_excel('sample_risk_data.xlsx', index=False)
-    print("✅ Sample risk data created: sample_risk_data.xlsx")
-    return 'sample_risk_data.xlsx'
-
-def create_sample_kri_data():
-    """Create sample KRI incident data for demonstration"""
-    import pandas as pd
-    from datetime import datetime, timedelta
-    import random
-    
-    # Systems that match the expected format
-    systems = ['Birbank', 'BirBank-Business', 'ELMA BPM', 'CMS', 'TWO', 'Zeus']
-    
-    data = []
-    current_system_index = 0
-    
-    for i in range(150):
-        # Cycle through systems
-        current_system = systems[current_system_index % len(systems)]
-        current_system_index += 1
-        
-        # Generate incidents in 2024, focusing on Q2 (April-June)
-        if random.random() < 0.6:  # 60% chance for Q2
-            month = random.choice([4, 5, 6])
-        else:
-            month = random.randint(1, 12)
-            
-        start_date = datetime(2024, month, random.randint(1, 28), 
-                             random.randint(0, 23), random.randint(0, 59))
-        
-        # Generate duration (some exceed RTO of 120 minutes)
-        if random.random() < 0.3:  # 30% exceed RTO
-            duration_minutes = random.randint(121, 480)
-            end_date = "-"  # Mark as ongoing/exceeding RTO
-        else:
-            duration_minutes = random.randint(5, 119)
-            end_date = start_date + timedelta(minutes=duration_minutes)
-        
-        # Format dates as expected by the parser
-        start_date_str = start_date.strftime("%d/%m/%y %H:%M")
-        end_date_str = end_date.strftime("%d/%m/%y %H:%M") if end_date != "-" else "-"
-        
-        # Add system identifier row (critical system)
-        if i % 10 == 0:  # Every 10 incidents, add a system identifier
-            data.append({
-                'Issue Key': f'{current_system} (ITAM-{1000 + i})',
-                'Incident start date': start_date_str,
-                'Incident end date': end_date_str,
-                'Incident duration': duration_minutes
-            })
-        
-        # Add actual incident row
-        data.append({
-            'Issue Key': f'IMP-{2000 + i}',
-            'Incident start date': start_date_str,
-            'Incident end date': end_date_str,
-            'Incident duration': duration_minutes
-        })
-    
-    df = pd.DataFrame(data)
-    df.to_excel('sample_kri_data.xlsx', index=False)
-    print("✅ Sample KRI data created: sample_kri_data.xlsx")
-    return 'sample_kri_data.xlsx'
 
 def main():
-    # File paths - use relative paths and create sample data if files don't exist
-    risk_file_path = "sample_risk_data.xlsx"
-    kri_file_path = "sample_kri_data.xlsx"
+    # File paths - original paths as requested
+    risk_file_path = r"C:\Users\XaniyevQX\Desktop\AUTOMATION_NEW\RCM_QTLD report_Report (1).xls"
+    kri_file_path = r"C:\Users\RzazadaTN\Desktop\Incident Report.xlsx"
     output_file = "Combined_Risk_KRI_Analysis_Report.html"
     
     print("Starting combined analysis...")
-    
-    # Check if files exist, create sample data if not
-    if not os.path.exists(risk_file_path):
-        print(f"Risk file not found. Creating sample data...")
-        risk_file_path = create_sample_risk_data()
-    
-    if not os.path.exists(kri_file_path):
-        print(f"KRI file not found. Creating sample data...")
-        kri_file_path = create_sample_kri_data()
     
     # Analyze risk data
     print("Analyzing risk data...")

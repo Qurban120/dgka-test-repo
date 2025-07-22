@@ -16,7 +16,7 @@ def analyze_kri13_from_excel(file_path):
         if issue_key_col is None or duration_col is None:
             return []
         
-        RTO_THRESHOLD = 7200  # 2 hours = 7200 seconds
+        RTO_THRESHOLD = 120  # 2 hours = 120 minutes
         system_within_rto_counts = {}
         current_critical_system = None
         
@@ -33,34 +33,32 @@ def analyze_kri13_from_excel(file_path):
                     current_critical_system = str(issue_key).split('(')[0].strip()
             elif str(issue_key).startswith('IMP-') and current_critical_system:
                 try:
-                    duration_seconds = int(duration) if duration and str(duration).isdigit() else 0
+                    duration_minutes = int(duration) if duration and str(duration).isdigit() else 0
                     
-                    # Count incidents resolved WITHIN RTO (≤ 7200 seconds)
-                    if 0 < duration_seconds <= RTO_THRESHOLD:
+                    # Count incidents within RTO (≤ 120 minutes)
+                    if 0 < duration_minutes <= RTO_THRESHOLD:
                         if current_critical_system not in system_within_rto_counts:
                             system_within_rto_counts[current_critical_system] = 0
                         system_within_rto_counts[current_critical_system] += 1
                 except:
                     continue
         
-        # Group Birbank systems together
+        # Group Birbank systems (except BirBank-Business)
         birbank_systems = ["BirBank.EDV", "BirBank.Loyalty", "BirBank.Payments", "BirBank.Transfers", "Birbank"]
         grouped_counts = {}
         
         for system, count in system_within_rto_counts.items():
             if system in birbank_systems:
-                # Group all Birbank systems under "Birbank"
                 if "Birbank" not in grouped_counts:
                     grouped_counts["Birbank"] = 0
                 grouped_counts["Birbank"] += count
             else:
-                # Keep other systems as they are
                 grouped_counts[system] = count
         
-        # Create results
+        # Prepare results
         results = []
         for system, count in sorted(grouped_counts.items()):
-            if count > 0:  # Only include systems with incidents within RTO
+            if count > 0:  # Only include systems with incidents
                 results.append({
                     "System": system,
                     "Within_RTO_Count": count,
@@ -68,35 +66,25 @@ def analyze_kri13_from_excel(file_path):
                 })
         
         return results
+        
     except:
         return []
 
-def generate_html_report(results):
-    # Count systems exceeding threshold
-    exceeded_count = len([r for r in results if r['Within_RTO_Count'] > 2])
-    
+def generate_kri13_html_report(results):
     html_content = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>KRI13 - RTO Within Limit Incidents Analysis</title>
+    <title>KRI13 - Within RTO Incident Counts Report</title>
     <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
         table {{ border-collapse: collapse; width: 100%; }}
         th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f2f2f2; font-weight: bold; }}
-        .exceeded {{ background-color: #ffcccc; color: #cc0000; font-weight: bold; }}
+        th {{ background-color: #f2f2f2; }}
+        .exceeded {{ background-color: #ffcccc; }}
     </style>
 </head>
 <body>
-    <h1>KRI13 - RTO Within Limit Incidents Analysis</h1>
-    
-    <p><strong>KRI13 Definition:</strong> Number of incidents in critical systems resolved within RTO</p>
-    <p><strong>RTO Threshold:</strong> 2 hours (7200 seconds)</p>
-    <p><strong>Maximum Allowed:</strong> 2 incidents per system (if more, threshold is violated)</p>
-    
-    <p style="color: red; font-weight: bold; font-size: 18px;">
-        Systems exceeding threshold: {exceeded_count}
-    </p>
-    
+    <h1>KRI13 - Within RTO Incident Counts</h1>
     <table>
         <tr>
             <th>System</th>
@@ -104,21 +92,13 @@ def generate_html_report(results):
             <th>Status</th>
         </tr>"""
     
-    if results:
-        for result in results:
-            row_class = ' class="exceeded"' if result['Within_RTO_Count'] > 2 else ''
-            html_content += f"""
+    for result in results:
+        row_class = ' class="exceeded"' if result['Within_RTO_Count'] > 2 else ''
+        html_content += f"""
         <tr{row_class}>
             <td>{result['System']}</td>
             <td>{result['Within_RTO_Count']}</td>
             <td>{result['Status']}</td>
-        </tr>"""
-    else:
-        html_content += f"""
-        <tr>
-            <td colspan="3" style="text-align: center; color: green; font-weight: bold;">
-                ✅ No incidents resolved within RTO - All systems optimal!
-            </td>
         </tr>"""
     
     html_content += """
@@ -135,11 +115,14 @@ def main():
         print("Excel file not found!")
         return
     
+    # Analyze KRI13
     results = analyze_kri13_from_excel(excel_file_path)
     
-    html_content = generate_html_report(results)
+    # Generate HTML report
+    html_content = generate_kri13_html_report(results)
     
-    with open('KRI13_RTO_Within_Report.html', 'w', encoding='utf-8') as f:
+    # Write to file
+    with open('KRI13_Within_RTO_Report.html', 'w', encoding='utf-8') as f:
         f.write(html_content)
     
     print("Successfully reported!")

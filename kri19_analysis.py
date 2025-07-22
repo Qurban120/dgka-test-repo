@@ -16,8 +16,8 @@ def analyze_kri19_from_excel(file_path):
         if issue_key_col is None or duration_col is None:
             return []
         
-        RTO_THRESHOLD = 7200  # 2 hours = 7200 seconds
-        system_durations = {}  # {system: [list of durations]}
+        RTO_THRESHOLD = 120  # 2 hours = 120 minutes
+        system_durations = {}
         current_critical_system = None
         
         for row in worksheet.iter_rows(min_row=2, values_only=True):
@@ -33,103 +33,82 @@ def analyze_kri19_from_excel(file_path):
                     current_critical_system = str(issue_key).split('(')[0].strip()
             elif str(issue_key).startswith('IMP-') and current_critical_system:
                 try:
-                    duration_seconds = int(duration) if duration and str(duration).isdigit() else 0
+                    duration_minutes = int(duration) if duration and str(duration).isdigit() else 0
                     
                     # Collect all incident durations for each system
-                    if duration_seconds > 0:  # Only valid durations
+                    if duration_minutes > 0:
                         if current_critical_system not in system_durations:
                             system_durations[current_critical_system] = []
-                        system_durations[current_critical_system].append(duration_seconds)
+                        system_durations[current_critical_system].append(duration_minutes)
                 except:
                     continue
         
-        # Group Birbank systems together (except BirBank-Business)
+        # Group Birbank systems (except BirBank-Business)
         birbank_systems = ["BirBank.EDV", "BirBank.Loyalty", "BirBank.Payments", "BirBank.Transfers", "Birbank"]
         grouped_durations = {}
         
         for system, durations in system_durations.items():
             if system in birbank_systems:
-                # Group all Birbank systems under "Birbank"
                 if "Birbank" not in grouped_durations:
                     grouped_durations["Birbank"] = []
                 grouped_durations["Birbank"].extend(durations)
             else:
-                # Keep other systems as they are (including BirBank-Business)
                 grouped_durations[system] = durations
         
-        # Calculate average durations
+        # Calculate average resolution time for each system
         results = []
         for system, durations in sorted(grouped_durations.items()):
-            if durations:  # Only systems with incidents
+            if durations:
                 total_duration = sum(durations)
                 incident_count = len(durations)
                 average_duration = total_duration / incident_count
                 
                 results.append({
                     "System": system,
-                    "Total_Duration": total_duration,
-                    "Incident_Count": incident_count,
-                    "Average_Duration_Seconds": int(average_duration),
-                    "Average_Duration_Hours": round(average_duration / 3600, 2),
+                    "Total_Incidents": incident_count,
+                    "Average_Duration_Minutes": int(average_duration),
+                    "Average_Duration_Hours": round(average_duration / 60, 2),
                     "Status": "EXCEEDED RTO" if average_duration > RTO_THRESHOLD else "WITHIN RTO"
                 })
         
         return results
+        
     except:
         return []
 
-def generate_html_report(results):
-    # Count systems exceeding RTO
-    exceeded_count = len([r for r in results if r['Average_Duration_Seconds'] > 7200])
-    
+def generate_kri19_html_report(results):
     html_content = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>KRI19 - Average Incident Resolution Time Analysis</title>
+    <title>KRI19 - Average Resolution Time Report</title>
     <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
         table {{ border-collapse: collapse; width: 100%; }}
         th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f2f2f2; font-weight: bold; }}
-        .exceeded {{ background-color: #ffcccc; color: #cc0000; font-weight: bold; }}
+        th {{ background-color: #f2f2f2; }}
+        .exceeded {{ background-color: #ffcccc; }}
     </style>
 </head>
 <body>
-    <h1>KRI19 - Average Incident Resolution Time Analysis</h1>
-    
-    <p><strong>KRI19 Definition:</strong> Average incident resolution time for critical systems</p>
-    <p><strong>RTO Threshold:</strong> 2 hours (7200 seconds)</p>
-    <p><strong>Target:</strong> Average resolution time should be less than RTO for each system</p>
-    
-    <p style="color: red; font-weight: bold; font-size: 18px;">
-        Systems exceeding RTO: {exceeded_count}
-    </p>
-    
+    <h1>KRI19 - Average Resolution Time</h1>
     <table>
         <tr>
             <th>System</th>
             <th>Total Incidents</th>
-            <th>Average Duration (Seconds)</th>
+            <th>Average Duration (Minutes)</th>
             <th>Average Duration (Hours)</th>
             <th>Status</th>
         </tr>"""
     
-    if results:
-        for result in results:
-            row_class = ' class="exceeded"' if result['Average_Duration_Seconds'] > 7200 else ''
-            html_content += f"""
+    for result in results:
+        row_class = ' class="exceeded"' if result['Average_Duration_Minutes'] > 120 else ''
+        html_content += f"""
         <tr{row_class}>
             <td>{result['System']}</td>
-            <td>{result['Incident_Count']}</td>
-            <td>{result['Average_Duration_Seconds']}</td>
+            <td>{result['Total_Incidents']}</td>
+            <td>{result['Average_Duration_Minutes']}</td>
             <td>{result['Average_Duration_Hours']}</td>
             <td>{result['Status']}</td>
-        </tr>"""
-    else:
-        html_content += f"""
-        <tr>
-            <td colspan="5" style="text-align: center; color: green; font-weight: bold;">
-                ✅ No incidents found for analysis
-            </td>
         </tr>"""
     
     html_content += """
@@ -146,11 +125,14 @@ def main():
         print("Excel file not found!")
         return
     
+    # Analyze KRI19
     results = analyze_kri19_from_excel(excel_file_path)
     
-    html_content = generate_html_report(results)
+    # Generate HTML report
+    html_content = generate_kri19_html_report(results)
     
-    with open('KRI19_Average_Duration_Report.html', 'w', encoding='utf-8') as f:
+    # Write to file
+    with open('KRI19_Average_Resolution_Report.html', 'w', encoding='utf-8') as f:
         f.write(html_content)
     
     print("Successfully reported!")

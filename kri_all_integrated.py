@@ -17,7 +17,7 @@ def analyze_all_kris_from_excel(file_path):
         if issue_key_col is None or start_date_col is None or duration_col is None:
             return {}, [], [], [], []
         
-        RTO_THRESHOLD = 7200  # 2 hours = 7200 seconds
+        RTO_THRESHOLD = 120  # 2 hours = 120 minutes
         
         # Data structures for different KRIs
         system_month_counts = {}  # KRI10
@@ -78,27 +78,27 @@ def analyze_all_kris_from_excel(file_path):
                         if incident_date > system_last_incidents[current_critical_system]:
                             system_last_incidents[current_critical_system] = incident_date
                 
-                # KRI12, KRI13, KRI19: Duration-based analysis
+                # KRI12, KRI13, KRI19: Duration-based analysis (duration is in minutes)
                 try:
-                    duration_seconds = int(duration) if duration and str(duration).isdigit() else 0
+                    duration_minutes = int(duration) if duration and str(duration).isdigit() else 0
                     
-                    if duration_seconds > 0:
+                    if duration_minutes > 0:
                         # KRI19: Collect all durations
                         if current_critical_system not in system_durations:
                             system_durations[current_critical_system] = []
-                        system_durations[current_critical_system].append(duration_seconds)
+                        system_durations[current_critical_system].append(duration_minutes)
                         
                         # KRI12: RTO exceeded incidents
-                        if duration_seconds > RTO_THRESHOLD:
+                        if duration_minutes > RTO_THRESHOLD:
                             rto_exceeded_incidents.append({
                                 "System": current_critical_system,
                                 "Incident": issue_key,
-                                "RTO_Exceeded_Seconds": duration_seconds,
-                                "RTO_Exceeded_Hours": round(duration_seconds / 3600, 2)
+                                "RTO_Exceeded_Minutes": duration_minutes,
+                                "RTO_Exceeded_Hours": round(duration_minutes / 60, 2)
                             })
                         
                         # KRI13: Within RTO incidents
-                        if duration_seconds <= RTO_THRESHOLD:
+                        if duration_minutes <= RTO_THRESHOLD:
                             if current_critical_system not in system_within_rto_counts:
                                 system_within_rto_counts[current_critical_system] = 0
                             system_within_rto_counts[current_critical_system] += 1
@@ -243,9 +243,9 @@ def process_kri19(system_durations):
             results.append({
                 "System": system,
                 "Incident_Count": incident_count,
-                "Average_Seconds": int(average_duration),
-                "Average_Hours": round(average_duration / 3600, 2),
-                "Status": "EXCEEDED RTO" if average_duration > 7200 else "WITHIN RTO"
+                "Average_Minutes": int(average_duration),
+                "Average_Hours": round(average_duration / 60, 2),
+                "Status": "EXCEEDED RTO" if average_duration > 120 else "WITHIN RTO"
             })
     
     return results
@@ -332,14 +332,14 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     html_content += f"""
     <h2>KRI12 - RTO Exceeded Incidents</h2>
     <div class="description">
-        Kritik sistemlərdə RTO-dan daha uzun müddətdə həll olunan insidentlərin sayı. Hər sistem üçün bu dəyər 0 olmalıdır.
+        Kritik sistemlərdə RTO-dan daha uzun müddətdə həll olunan insidentlərin sayı. Hər sistem üçün bu dəyər 0 olmalıdır. (RTO: 2 saat = 120 dəqiqə)
     </div>
     <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <table>
         <tr>
             <th>System</th>
             <th>Incident</th>
-            <th>RTO time which more than normal RTP</th>
+            <th>RTO time which more than normal RTP (minutes)</th>
         </tr>"""
     
     for result in kri12_results:
@@ -347,7 +347,7 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
         <tr class="exceeded">
             <td>{result['System']}</td>
             <td>{result['Incident']}</td>
-            <td>{result['RTO_Exceeded_Seconds']}</td>
+            <td>{result['RTO_Exceeded_Minutes']}</td>
         </tr>"""
     
     html_content += """
@@ -359,7 +359,7 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     html_content += """
     <h2>KRI13 - Within RTO Incident Counts</h2>
     <div class="description">
-        Kritik sistemlərdə RTO daxilində həll olunan insidentlərin sayı. Bu dəyər hər sistem üçün maksimum 2 ola bilər.
+        Kritik sistemlərdə RTO daxilində həll olunan insidentlərin sayı. Bu dəyər hər sistem üçün maksimum 2 ola bilər. (RTO: 2 saat = 120 dəqiqə)
     </div>
     <table>
         <tr>
@@ -386,24 +386,24 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     html_content += """
     <h2>KRI19 - Average Resolution Time</h2>
     <div class="description">
-        Kritik sistemlərdə insidentin aradan qaldırılma müddətinin orta qiyməti. Hər sistem üçün RTO-dan az olmalıdır.
+        Kritik sistemlərdə insidentin aradan qaldırılma müddətinin orta qiyməti. Hər sistem üçün RTO-dan az olmalıdır. (RTO: 2 saat = 120 dəqiqə)
     </div>
     <table>
         <tr>
             <th>System</th>
             <th>Total Incidents</th>
-            <th>Average Duration (Seconds)</th>
+            <th>Average Duration (Minutes)</th>
             <th>Average Duration (Hours)</th>
             <th>Status</th>
         </tr>"""
     
     for result in kri19_results:
-        row_class = ' class="exceeded"' if result['Average_Seconds'] > 7200 else ''
+        row_class = ' class="exceeded"' if result['Average_Minutes'] > 120 else ''
         html_content += f"""
         <tr{row_class}>
             <td>{result['System']}</td>
             <td>{result['Incident_Count']}</td>
-            <td>{result['Average_Seconds']}</td>
+            <td>{result['Average_Minutes']}</td>
             <td>{result['Average_Hours']}</td>
             <td>{result['Status']}</td>
         </tr>"""

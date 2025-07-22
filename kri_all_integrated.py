@@ -263,6 +263,8 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
         .exceeded { background-color: #ffcccc; }
         h2 { margin-top: 40px; }
         .total-count { color: red; font-weight: bold; font-size: 18px; margin-bottom: 10px; }
+        .description { color: #666; margin-bottom: 15px; font-style: italic; }
+        hr { border: none; border-top: 2px solid #ddd; margin: 40px 0; }
     </style>
 </head>
 <body>
@@ -272,6 +274,9 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     # KRI8 Section
     html_content += """
     <h2>KRI8 - Days Since Last Incident</h2>
+    <div class="description">
+        Critical system son insidentdən rübün sonuna qədər keçən günlərin sayı. 120 gündən çox olmalıdır.
+    </div>
     <table>
         <tr>
             <th>System</th>
@@ -290,11 +295,17 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
             <td>{result['Status']}</td>
         </tr>"""
     
-    # KRI10 Section
     html_content += """
     </table>
+    <hr>
+    """
     
+    # KRI10 Section
+    html_content += """
     <h2>KRI10 - Monthly Incident Counts</h2>
+    <div class="description">
+        Kritik sistemlərə təsir edən insidentlərin sayı. Bir kritik sistemdə 1 ay ərzində maksimum 2 insident ola bilər.
+    </div>
     <table>
         <tr>
             <th>System</th>
@@ -311,12 +322,18 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
             <td>{result['Count']}</td>
         </tr>"""
     
+    html_content += """
+    </table>
+    <hr>
+    """
+    
     # KRI12 Section
     total_rto_exceeded = len(kri12_results)
     html_content += f"""
-    </table>
-    
     <h2>KRI12 - RTO Exceeded Incidents</h2>
+    <div class="description">
+        Kritik sistemlərdə RTO-dan daha uzun müddətdə həll olunan insidentlərin sayı. Hər sistem üçün bu dəyər 0 olmalıdır.
+    </div>
     <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <table>
         <tr>
@@ -333,11 +350,17 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
             <td>{result['RTO_Exceeded_Seconds']}</td>
         </tr>"""
     
-    # KRI13 Section
     html_content += """
     </table>
+    <hr>
+    """
     
+    # KRI13 Section
+    html_content += """
     <h2>KRI13 - Within RTO Incident Counts</h2>
+    <div class="description">
+        Kritik sistemlərdə RTO daxilində həll olunan insidentlərin sayı. Bu dəyər hər sistem üçün maksimum 2 ola bilər.
+    </div>
     <table>
         <tr>
             <th>System</th>
@@ -354,11 +377,17 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
             <td>{result['Status']}</td>
         </tr>"""
     
-    # KRI19 Section
     html_content += """
     </table>
+    <hr>
+    """
     
+    # KRI19 Section
+    html_content += """
     <h2>KRI19 - Average Resolution Time</h2>
+    <div class="description">
+        Kritik sistemlərdə insidentin aradan qaldırılma müddətinin orta qiyməti. Hər sistem üçün RTO-dan az olmalıdır.
+    </div>
     <table>
         <tr>
             <th>System</th>

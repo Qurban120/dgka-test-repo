@@ -244,7 +244,6 @@ def process_kri19(system_durations):
                 "System": system,
                 "Incident_Count": incident_count,
                 "Average_Minutes": int(average_duration),
-                "Average_Hours": round(average_duration / 60, 2),
                 "Status": "EXCEEDED RTO" if average_duration > 120 else "WITHIN RTO"
             })
     
@@ -264,6 +263,7 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
         h2 { margin-top: 40px; }
         .total-count { color: red; font-weight: bold; font-size: 18px; margin-bottom: 10px; }
         .description { color: #666; margin-bottom: 15px; font-style: italic; }
+        .summary { background-color: #f9f9f9; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
         hr { border: none; border-top: 2px solid #ddd; margin: 40px 0; }
     </style>
 </head>
@@ -274,8 +274,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     # KRI8 Section
     html_content += """
     <h2>KRI8 - Days Since Last Incident</h2>
-    <div class="description">
-        Critical system son insidentdən rübün sonuna qədər keçən günlərin sayı. 120 gündən çox olmalıdır.
+    <div class="summary">
+        <strong>KRI8 Definition:</strong> Days from last incident in critical system to end of quarter<br>
+        <strong>Target:</strong> More than 120 days (systems should remain incident-free)<br>
+        <strong>Quarter End:</strong> June 30, 2025
     </div>
     <table>
         <tr>
@@ -303,8 +305,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     # KRI10 Section
     html_content += """
     <h2>KRI10 - Monthly Incident Counts</h2>
-    <div class="description">
-        Kritik sistemlərə təsir edən insidentlərin sayı. Bir kritik sistemdə 1 ay ərzində maksimum 2 insident ola bilər.
+    <div class="summary">
+        <strong>KRI10 Definition:</strong> Number of incidents affecting critical systems per month<br>
+        <strong>Threshold:</strong> Maximum 2 incidents per system per month<br>
+        <strong>Period:</strong> Q2 2025 (April, May, June)
     </div>
     <table>
         <tr>
@@ -331,8 +335,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     total_rto_exceeded = len(kri12_results)
     html_content += f"""
     <h2>KRI12 - RTO Exceeded Incidents</h2>
-    <div class="description">
-        Kritik sistemlərdə RTO-dan daha uzun müddətdə həll olunan insidentlərin sayı. Hər sistem üçün bu dəyər 0 olmalıdır. (RTO: 2 saat = 120 dəqiqə)
+    <div class="summary">
+        <strong>KRI12 Definition:</strong> Incidents resolved longer than RTO (>2 hours)<br>
+        <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
+        <strong>Target:</strong> 0 incidents exceeding RTO for each system
     </div>
     <p class="total-count">Total incidents exceeding RTO: {total_rto_exceeded}</p>
     <table>
@@ -358,8 +364,10 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     # KRI13 Section
     html_content += """
     <h2>KRI13 - Within RTO Incident Counts</h2>
-    <div class="description">
-        Kritik sistemlərdə RTO daxilində həll olunan insidentlərin sayı. Bu dəyər hər sistem üçün maksimum 2 ola bilər. (RTO: 2 saat = 120 dəqiqə)
+    <div class="summary">
+        <strong>KRI13 Definition:</strong> Number of incidents resolved within RTO (≤2 hours)<br>
+        <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
+        <strong>Threshold:</strong> Maximum 2 incidents per system (if more, too many incidents occurring)
     </div>
     <table>
         <tr>
@@ -385,15 +393,16 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
     # KRI19 Section
     html_content += """
     <h2>KRI19 - Average Resolution Time</h2>
-    <div class="description">
-        Kritik sistemlərdə insidentin aradan qaldırılma müddətinin orta qiyməti. Hər sistem üçün RTO-dan az olmalıdır. (RTO: 2 saat = 120 dəqiqə)
+    <div class="summary">
+        <strong>KRI19 Definition:</strong> Average incident resolution time per system<br>
+        <strong>RTO Threshold:</strong> 2 hours (120 minutes)<br>
+        <strong>Target:</strong> Average should be less than RTO for each system
     </div>
     <table>
         <tr>
             <th>System</th>
             <th>Total Incidents</th>
             <th>Average Duration (Minutes)</th>
-            <th>Average Duration (Hours)</th>
             <th>Status</th>
         </tr>"""
     
@@ -404,7 +413,6 @@ def generate_simple_html_report(kri8_results, kri10_results, kri12_results, kri1
             <td>{result['System']}</td>
             <td>{result['Incident_Count']}</td>
             <td>{result['Average_Minutes']}</td>
-            <td>{result['Average_Hours']}</td>
             <td>{result['Status']}</td>
         </tr>"""
     

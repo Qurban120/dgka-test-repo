@@ -54,13 +54,29 @@ def analyze_kri10_from_excel(file_path):
                         system_month_counts[key] = 0
                     system_month_counts[key] += 1
         
+        # Group Birbank systems together
+        birbank_systems = ["BirBank.EDV", "BirBank.Loyalty", "BirBank.Payments", "BirBank.Transfers", "Birbank"]
+        grouped_counts = {}
+        
+        for (system, month), count in system_month_counts.items():
+            if system in birbank_systems:
+                # Group all Birbank systems under "Birbank"
+                key = ("Birbank", month)
+            else:
+                # Keep other systems as they are
+                key = (system, month)
+            
+            if key not in grouped_counts:
+                grouped_counts[key] = 0
+            grouped_counts[key] += count
+        
         # Create results
         results = []
-        critical_systems = set([key[0] for key in system_month_counts.keys()])
+        critical_systems = set([key[0] for key in grouped_counts.keys()])
         
         for system in sorted(critical_systems):
             for month in ["April", "May", "June"]:
-                count = system_month_counts.get((system, month), 0)
+                count = grouped_counts.get((system, month), 0)
                 if count > 0:
                     results.append({
                         "System": system,

@@ -196,7 +196,7 @@ class UserTerminationAnalyzer:
                 if col_name in filtered_df.columns:
                     filtered_df[col_name] = pd.to_datetime(filtered_df[col_name], errors='coerce')
             
-            # Perform analysis
+            # Perform analysis and preserve all original columns
             results = []
             for index, row in filtered_df.iterrows():
                 if pd.notna(row[date_columns['termination']]) and pd.notna(row[date_columns['lock']]):
@@ -205,18 +205,23 @@ class UserTerminationAnalyzer:
                         row[date_columns['lock']]
                     )
                     
-                    result_row = {
-                        'row_index': index,
-                        'user_id': row.get('User ID', row.get('ID', f'Row_{index}')),
-                        'termination_date': analysis['details']['termination_date'],
-                        'lock_date': analysis['details']['lock_date'],
-                        'status': analysis['status'],
-                        'reason': analysis['reason'],
-                        'action_required': analysis['action_required'],
-                        'days_difference': analysis['details'].get('days_difference', 0),
-                        'termination_is_weekend': analysis['details']['termination_is_weekend'],
-                        'termination_is_holiday': analysis['details']['termination_is_holiday'],
-                    }
+                    # Start with all original columns from the row
+                    result_row = row.to_dict()
+                    
+                    # Add analysis results
+                    result_row.update({
+                        'ANALYSIS_STATUS': analysis['status'],
+                        'ANALYSIS_REASON': analysis['reason'],
+                        'ACTION_REQUIRED': analysis['action_required'],
+                        'DAYS_DIFFERENCE': analysis['details'].get('days_difference', 0),
+                        'TERMINATION_IS_WEEKEND': analysis['details']['termination_is_weekend'],
+                        'TERMINATION_IS_HOLIDAY': analysis['details']['termination_is_holiday'],
+                        'LOCK_IS_WEEKEND': analysis['details']['lock_is_weekend'],
+                        'LOCK_IS_HOLIDAY': analysis['details']['lock_is_holiday'],
+                        'FIRST_BUSINESS_DAY_AFTER_TERMINATION': analysis['details'].get('first_business_day_after_termination', ''),
+                        'DAYS_AFTER_FIRST_BUSINESS_DAY': analysis['details'].get('days_after_first_business_day', 0)
+                    })
+                    
                     results.append(result_row)
             
             return pd.DataFrame(results)
@@ -233,9 +238,9 @@ class UserTerminationAnalyzer:
         
         # Create summary statistics
         total_records = len(results_df)
-        compliant_records = len(results_df[results_df['status'] == 'COMPLIANT'])
-        non_compliant_records = len(results_df[results_df['status'] == 'NON_COMPLIANT'])
-        action_required_records = len(results_df[results_df['action_required'] == True])
+        compliant_records = len(results_df[results_df['ANALYSIS_STATUS'] == 'COMPLIANT'])
+        non_compliant_records = len(results_df[results_df['ANALYSIS_STATUS'] == 'NON_COMPLIANT'])
+        action_required_records = len(results_df[results_df['ACTION_REQUIRED'] == True])
         
         print(f"\n=== ANALYSIS SUMMARY ===")
         print(f"Total records analyzed: {total_records}")
@@ -245,7 +250,7 @@ class UserTerminationAnalyzer:
         
         # Save detailed report
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-            # Main results
+            # Main results with all original columns plus analysis
             results_df.to_excel(writer, sheet_name='Analysis Results', index=False)
             
             # Summary statistics
@@ -258,9 +263,9 @@ class UserTerminationAnalyzer:
             summary_df = pd.DataFrame(summary_data)
             summary_df.to_excel(writer, sheet_name='Summary', index=False)
             
-            # Non-compliant records only
+            # Non-compliant records only (with all columns)
             if non_compliant_records > 0:
-                non_compliant_df = results_df[results_df['status'] == 'NON_COMPLIANT']
+                non_compliant_df = results_df[results_df['ANALYSIS_STATUS'] == 'NON_COMPLIANT']
                 non_compliant_df.to_excel(writer, sheet_name='Non-Compliant Records', index=False)
         
         print(f"Detailed report saved to: {output_file}")
@@ -272,12 +277,14 @@ def main():
     print("=" * 50)
     
     # Get file paths from user
-    main_file_path = input("Enter the path to the main Excel file with user data: ").strip()
-    holidays_file_path = input("Enter the path to the holidays Excel file: ").strip()
+    print("Please provide the required file paths:")
+    print()
+    main_file_path = input("Enter the path to the CMS Excel file (main user data file): ").strip()
+    holidays_file_path = input("Enter the path to the Holidays Excel file: ").strip()
     
     # Validate file paths
     if not os.path.exists(main_file_path):
-        print(f"Error: Main file not found at {main_file_path}")
+        print(f"Error: CMS file not found at {main_file_path}")
         return
     
     if not os.path.exists(holidays_file_path):
@@ -299,14 +306,15 @@ def main():
         analyzer.generate_report(results, output_file)
         
         # Show non-compliant records
-        non_compliant = results[results['action_required'] == True]
+        non_compliant = results[results['ACTION_REQUIRED'] == True]
         if len(non_compliant) > 0:
             print(f"\n=== NON-COMPLIANT RECORDS REQUIRING ACTION ===")
             for _, row in non_compliant.iterrows():
-                print(f"User ID: {row['user_id']}")
-                print(f"  Termination: {row['termination_date']}")
-                print(f"  Lock Date: {row['lock_date']}")
-                print(f"  Issue: {row['reason']}")
+                # Try to get user identifier from common column names
+                user_identifier = row.get('User ID', row.get('ID', row.get('Username', row.get('Employee ID', 'Unknown'))))
+                print(f"User: {user_identifier}")
+                print(f"  Status: {row['ANALYSIS_STATUS']}")
+                print(f"  Issue: {row['ANALYSIS_REASON']}")
                 print("-" * 40)
     else:
         print("Analysis failed. Please check your input files and try again.")

@@ -29,12 +29,13 @@ This Python script analyzes user termination and lock dates to ensure compliance
 
 ## File Requirements
 
-### Main Excel File
+### CMS Excel File (Main User Data)
 - Should contain user data with the following types of columns:
   - Status column (containing values like EXPIRED, LOCKED, etc.)
   - Termination date column
   - Lock date column
   - User ID column (optional, for identification)
+- **All columns from the original file will be preserved in the output**
 
 ### Holidays Excel File
 - Must contain a column named "DATES"
@@ -54,8 +55,8 @@ This Python script analyzes user termination and lock dates to ensure compliance
    ```
 
 3. **Follow the prompts**:
-   - Enter path to main Excel file with user data
-   - Enter path to holidays Excel file
+   - Enter path to CMS Excel file (main user data file)
+   - Enter path to Holidays Excel file
    - Enter output file name (optional, defaults to 'termination_analysis_report.xlsx')
 
 ## Output
@@ -64,14 +65,16 @@ The script generates an Excel report with multiple sheets:
 
 ### Analysis Results Sheet
 Contains all analyzed records with:
-- User ID
-- Termination Date
-- Lock Date
-- Compliance Status (COMPLIANT/NON_COMPLIANT)
-- Reason for determination
-- Action Required flag
-- Days difference between dates
-- Weekend/holiday flags
+- **All original columns from the CMS file**
+- Additional analysis columns:
+  - ANALYSIS_STATUS (COMPLIANT/NON_COMPLIANT)
+  - ANALYSIS_REASON (detailed explanation)
+  - ACTION_REQUIRED (true/false flag)
+  - DAYS_DIFFERENCE (days between termination and lock)
+  - TERMINATION_IS_WEEKEND/TERMINATION_IS_HOLIDAY
+  - LOCK_IS_WEEKEND/LOCK_IS_HOLIDAY
+  - FIRST_BUSINESS_DAY_AFTER_TERMINATION
+  - DAYS_AFTER_FIRST_BUSINESS_DAY
 
 ### Summary Sheet
 Provides overall statistics:

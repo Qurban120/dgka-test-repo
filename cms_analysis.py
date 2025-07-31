@@ -78,8 +78,9 @@ class UserTerminationAnalyzer:
             df[termination_col] = pd.to_datetime(df[termination_col], errors='coerce')
             df[lock_col] = pd.to_datetime(df[lock_col], errors='coerce')
             
-            results = []
+            non_compliant_results = []
             analyzed_count = 0
+            non_compliant_count = 0
             
             for index, row in df.iterrows():
                 # Only analyze rows that have both termination and lock dates
@@ -89,17 +90,15 @@ class UserTerminationAnalyzer:
                         row[lock_col]
                     )
                     
-                    result_row = row.to_dict()
-                    result_row.update({
-                        'ANALYSIS_STATUS': analysis['status'],
-                        'ANALYSIS_REASON': analysis['reason'],
-                        'ACTION_REQUIRED': analysis['action_required']
-                    })
-                    results.append(result_row)
                     analyzed_count += 1
+                    
+                    # Only keep NON_COMPLIANT rows
+                    if analysis['status'] == 'NON_COMPLIANT':
+                        non_compliant_results.append(row.to_dict())
+                        non_compliant_count += 1
             
-            print(f"Analyzed {analyzed_count} records with both dates")
-            return pd.DataFrame(results)
+            print(f"Analyzed {analyzed_count} records, found {non_compliant_count} non-compliant")
+            return pd.DataFrame(non_compliant_results)
             
         except Exception as e:
             print(f"Error: {e}")
@@ -107,28 +106,14 @@ class UserTerminationAnalyzer:
     
     def generate_report(self, results_df, output_file):
         if results_df is None or results_df.empty:
+            print("No non-compliant records found")
             return
         
-        total_records = len(results_df)
-        compliant_records = len(results_df[results_df['ANALYSIS_STATUS'] == 'COMPLIANT'])
-        non_compliant_records = len(results_df[results_df['ANALYSIS_STATUS'] == 'NON_COMPLIANT'])
-        action_required_records = len(results_df[results_df['ACTION_REQUIRED'] == True])
+        non_compliant_count = len(results_df)
+        print(f"Found {non_compliant_count} non-compliant records")
         
-        print(f"Total: {total_records}, Compliant: {compliant_records}, Non-compliant: {non_compliant_records}, Action required: {action_required_records}")
-        
-        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-            results_df.to_excel(writer, sheet_name='Analysis Results', index=False)
-            
-            summary_data = {
-                'Metric': ['Total Records', 'Compliant', 'Non-Compliant', 'Action Required'],
-                'Count': [total_records, compliant_records, non_compliant_records, action_required_records]
-            }
-            summary_df = pd.DataFrame(summary_data)
-            summary_df.to_excel(writer, sheet_name='Summary', index=False)
-            
-            if non_compliant_records > 0:
-                non_compliant_df = results_df[results_df['ANALYSIS_STATUS'] == 'NON_COMPLIANT']
-                non_compliant_df.to_excel(writer, sheet_name='Non-Compliant Records', index=False)
+        # Save only the non-compliant records with original columns
+        results_df.to_excel(output_file, index=False)
 
 def main():
     main_file_path = input("CMS file path: ").strip()

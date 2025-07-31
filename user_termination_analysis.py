@@ -62,53 +62,55 @@ class UserTerminationAnalyzer:
             return {'status': 'NON_COMPLIANT', 'reason': f'{days_difference} days late', 'action_required': True}
     
     def load_and_analyze_data(self):
-        df = pd.read_excel(self.main_file_path)
-        
-        target_statuses = ['EXPIRED', 'EXPIRED AND LOCKED', 'EXPIRED (GRACE) AND LOCKED', 'LOCKED']
-        
-        status_column = None
-        for col in df.columns:
-            if 'status' in col.lower() or 'state' in col.lower():
-                status_column = col
-                break
-        
-        if status_column:
-            filtered_df = df[df[status_column].isin(target_statuses)].copy()
-        else:
-            filtered_df = df.copy()
-        
-        date_columns = {}
-        for col in df.columns:
-            col_lower = col.lower()
-            if 'termination' in col_lower or 'term' in col_lower:
-                date_columns['termination'] = col
-            elif 'lock' in col_lower:
-                date_columns['lock'] = col
-        
-        if 'termination' not in date_columns or 'lock' not in date_columns:
+        try:
+            df = pd.read_excel(self.main_file_path)
+            
+            # Find the exact column names from your data
+            termination_col = None
+            lock_col = None
+            
+            for col in df.columns:
+                if 'Termination Date' in col:
+                    termination_col = col
+                elif 'User Lock Date' in col:
+                    lock_col = col
+            
+            if not termination_col or not lock_col:
+                print(f"Columns found: {list(df.columns)}")
+                print(f"Termination column found: {termination_col}")
+                print(f"Lock column found: {lock_col}")
+                return None
+            
+            # Convert date columns
+            df[termination_col] = pd.to_datetime(df[termination_col], errors='coerce')
+            df[lock_col] = pd.to_datetime(df[lock_col], errors='coerce')
+            
+            results = []
+            analyzed_count = 0
+            
+            for index, row in df.iterrows():
+                # Only analyze rows that have both termination and lock dates
+                if pd.notna(row[termination_col]) and pd.notna(row[lock_col]):
+                    analysis = self.analyze_user_lock_timing(
+                        row[termination_col], 
+                        row[lock_col]
+                    )
+                    
+                    result_row = row.to_dict()
+                    result_row.update({
+                        'ANALYSIS_STATUS': analysis['status'],
+                        'ANALYSIS_REASON': analysis['reason'],
+                        'ACTION_REQUIRED': analysis['action_required']
+                    })
+                    results.append(result_row)
+                    analyzed_count += 1
+            
+            print(f"Analyzed {analyzed_count} records with both dates")
+            return pd.DataFrame(results)
+            
+        except Exception as e:
+            print(f"Error: {e}")
             return None
-        
-        for date_type, col_name in date_columns.items():
-            if col_name in filtered_df.columns:
-                filtered_df[col_name] = pd.to_datetime(filtered_df[col_name], errors='coerce')
-        
-        results = []
-        for index, row in filtered_df.iterrows():
-            if pd.notna(row[date_columns['termination']]) and pd.notna(row[date_columns['lock']]):
-                analysis = self.analyze_user_lock_timing(
-                    row[date_columns['termination']], 
-                    row[date_columns['lock']]
-                )
-                
-                result_row = row.to_dict()
-                result_row.update({
-                    'ANALYSIS_STATUS': analysis['status'],
-                    'ANALYSIS_REASON': analysis['reason'],
-                    'ACTION_REQUIRED': analysis['action_required']
-                })
-                results.append(result_row)
-        
-        return pd.DataFrame(results)
     
     def generate_report(self, results_df, output_file):
         if results_df is None or results_df.empty:

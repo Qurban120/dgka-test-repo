@@ -63,7 +63,7 @@ class UserTerminationAnalyzer:
     
     def load_and_analyze_data(self):
         try:
-            df = pd.read_excel(self.main_file_path)
+            df = pd.read_excel(self.main_file_path, header=1)
             
             # Find the exact column names
             termination_col = 'Termination Date'

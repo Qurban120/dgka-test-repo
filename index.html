@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRI REPORT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .upload-section {
+            display: grid;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .file-upload {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .file-upload.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            text-align: center;
+        }
+
+        .upload-text h3 {
+            color: #333;
+            font-size: 1.3em;
+            margin-bottom: 8px;
+        }
+
+        .upload-text p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .process-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+            min-width: 200px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .process-btn:enabled {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .process-btn:hover:enabled {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .download-links {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #dc3545;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #28a745;
+            margin: 20px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .file-upload {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>KRI REPORT</h1>
+            <p>Upload your files to generate automated KRI analysis report</p>
+        </div>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-section">
+                <div class="file-upload" onclick="document.getElementById('riskFile').click()">
+                    <input type="file" id="riskFile" name="risk_file" accept=".xls,.xlsx" required>
+                    <div class="upload-icon">📊</div>
+                    <div class="upload-text">
+                        <h3>Choose Risk File</h3>
+                        <p>Select your risk report file (.xls or .xlsx)</p>
+                    </div>
+                    <div class="file-name" id="riskFileName"></div>
+                </div>
+
+                <div class="file-upload" onclick="document.getElementById('incidentFile').click()">
+                    <input type="file" id="incidentFile" name="incident_file" accept=".xlsx" required>
+                    <div class="upload-icon">🚨</div>
+                    <div class="upload-text">
+                        <h3>Choose Incident File</h3>
+                        <p>Select your incident report file (.xlsx)</p>
+                    </div>
+                    <div class="file-name" id="incidentFileName"></div>
+                </div>
+
+                <div class="file-upload" onclick="document.getElementById('templateFile').click()">
+                    <input type="file" id="templateFile" name="template_file" accept=".xlsx" required>
+                    <div class="upload-icon">📋</div>
+                    <div class="upload-text">
+                        <h3>Choose Last KRI Report File</h3>
+                        <p>Select your KRI template file (.xlsx)</p>
+                    </div>
+                    <div class="file-name" id="templateFileName"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="process-btn" id="processBtn" disabled>
+                Process Files & Generate Report
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your files... This may take a few moments.</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="result-section" id="resultSection">
+            <h3>Report Generated Successfully!</h3>
+            <p>Your KRI analysis has been completed. Download the reports below:</p>
+            <div class="download-links" id="downloadLinks">
+                <!-- Download links will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // File upload handling
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        const processBtn = document.getElementById('processBtn');
+        const form = document.getElementById('uploadForm');
+        const loading = document.getElementById('loading');
+        const resultSection = document.getElementById('resultSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Add drag and drop functionality
+        document.querySelectorAll('.file-upload').forEach(uploadArea => {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const fileInput = uploadArea.querySelector('input[type="file"]');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    updateFileName(fileInput);
+                    checkAllFiles();
+                }
+            });
+        });
+
+        // Handle file selection
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                updateFileName(this);
+                checkAllFiles();
+            });
+        });
+
+        function updateFileName(input) {
+            const fileNameDisplay = input.parentElement.querySelector('.file-name');
+            if (input.files.length > 0) {
+                fileNameDisplay.textContent = input.files[0].name;
+                fileNameDisplay.style.display = 'block';
+                input.parentElement.style.borderColor = '#28a745';
+                input.parentElement.style.background = '#f0fff4';
+            } else {
+                fileNameDisplay.style.display = 'none';
+                input.parentElement.style.borderColor = '#667eea';
+                input.parentElement.style.background = '#f8f9ff';
+            }
+        }
+
+        function checkAllFiles() {
+            const allFilesSelected = Array.from(fileInputs).every(input => input.files.length > 0);
+            processBtn.disabled = !allFilesSelected;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            hideMessages();
+            loading.style.display = 'block';
+            resultSection.style.display = 'none';
+            processBtn.disabled = true;
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Report generated successfully!');
+                    
+                    // Update download links
+                    const downloadLinks = document.getElementById('downloadLinks');
+                    downloadLinks.innerHTML = '';
+                    
+                    if (result.html_report) {
+                        downloadLinks.innerHTML += `
+                            <a href="/download/html" class="download-btn">📄 Download HTML Report</a>
+                        `;
+                    }
+                    
+                    if (result.excel_report) {
+                        downloadLinks.innerHTML += `
+                            <a href="/download/excel" class="download-btn">📊 Download Excel Report</a>
+                        `;
+                    }
+                    
+                    resultSection.style.display = 'block';
+                } else {
+                    showError(result.error || 'An error occurred while processing the files.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to process files. Please check your connection and try again.');
+            } finally {
+                loading.style.display = 'none';
+                processBtn.disabled = false;
+            }
+        });
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    </script>
+</body>
+</html>

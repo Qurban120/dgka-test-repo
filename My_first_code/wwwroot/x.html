@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>KRI Dashboards</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+	<style>
+		body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
+		.container { max-width: 1200px; margin: 0 auto; }
+		.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+		.btn { padding: 10px 16px; border: none; border-radius: 6px; background: #667eea; color: #fff; font-weight: 600; cursor: pointer; }
+		.btn.secondary { background: #4caf50; }
+		.card { background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.08); padding: 16px; margin-bottom: 16px; }
+		pre { white-space: pre-wrap; background: #0b1021; color: #d4d4d4; padding: 12px; border-radius: 8px; overflow: auto; }
+		label { display: block; font-weight: 600; margin: 12px 0 6px; }
+		input, select { width: 100%; padding: 10px; border: 2px solid #e1e5fe; border-radius: 6px; }
+		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+		@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+		.message { margin-top: 10px; padding: 10px; border-radius: 6px; }
+		.success { background: #e8f5e9; color: #2e7d32; }
+		.error { background: #ffebee; color: #c62828; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>KRI Dashboards (Editor-enabled)</h1>
+		<div class="toolbar">
+			<button class="btn" id="reloadBtn">Reload data</button>
+			<button class="btn secondary" id="saveBtn">Save all changes</button>
+		</div>
+		<div id="msg"></div>
+		<div class="card">
+			<h2>Raw Data (preview)</h2>
+			<pre id="raw"></pre>
+		</div>
+
+		<div class="card">
+			<h2>KRI2: Add data point</h2>
+			<div class="grid">
+				<div>
+					<label for="k2Year">Year</label>
+					<select id="k2Year"></select>
+				</div>
+				<div>
+					<label for="k2Quarter">Quarter</label>
+					<select id="k2Quarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="k2Pct">Percentage</label>
+					<input id="k2Pct" type="number" step="0.01" min="0" max="100" placeholder="e.g. 95.5" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="k2Add">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>KRI10: Add application data point</h2>
+			<div class="grid">
+				<div>
+					<label for="k10App">Application</label>
+					<input id="k10App" placeholder="e.g. BirBank" />
+				</div>
+				<div>
+					<label for="k10Month">Month</label>
+					<select id="k10Month"></select>
+				</div>
+				<div>
+					<label for="k10Year">Year</label>
+					<select id="k10Year"></select>
+				</div>
+				<div>
+					<label for="k10Inc">Incidents</label>
+					<input id="k10Inc" type="number" min="0" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="k10Add">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Quarter-based Percentage KRIs: Add data point</h2>
+			<div class="grid">
+				<div>
+					<label for="kPctKri">KRI</label>
+					<select id="kPctKri">
+						<option value="kri3">KRI3</option>
+						<option value="kri5">KRI5</option>
+						<option value="kri6">KRI6</option>
+						<option value="kri15">KRI15</option>
+						<option value="kri18">KRI18</option>
+						<option value="kri22">KRI22</option>
+						<option value="kri27">KRI27</option>
+						<option value="kri28">KRI28</option>
+					</select>
+				</div>
+				<div>
+					<label for="kPctYear">Year</label>
+					<select id="kPctYear"></select>
+				</div>
+				<div>
+					<label for="kPctQuarter">Quarter</label>
+					<select id="kPctQuarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="kPctValue">Percentage</label>
+					<input id="kPctValue" type="number" step="0.01" min="0" max="100" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="kPctAdd">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Quarter-based Count KRIs: Add data point</h2>
+			<div class="grid">
+				<div>
+					<label for="kCntKri">KRI</label>
+					<select id="kCntKri">
+						<option value="kri4">KRI4</option>
+						<option value="kri9">KRI9</option>
+						<option value="kri20">KRI20</option>
+						<option value="kri21">KRI21</option>
+					</select>
+				</div>
+				<div>
+					<label for="kCntYear">Year</label>
+					<select id="kCntYear"></select>
+				</div>
+				<div>
+					<label for="kCntQuarter">Quarter</label>
+					<select id="kCntQuarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="kCntValue">Count</label>
+					<input id="kCntValue" type="number" min="0" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="kCntAdd">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>KRI8 (MTBF Days): Add application quarter data</h2>
+			<div class="grid">
+				<div>
+					<label for="k8App">Application</label>
+					<input id="k8App" placeholder="e.g. BirBank" />
+				</div>
+				<div>
+					<label for="k8Year">Year</label>
+					<select id="k8Year"></select>
+				</div>
+				<div>
+					<label for="k8Quarter">Quarter</label>
+					<select id="k8Quarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="k8Value">Days</label>
+					<input id="k8Value" type="number" min="0" step="0.01" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="k8Add">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>KRI12 (Incidents exceeding RTO): Add application quarter data</h2>
+			<div class="grid">
+				<div>
+					<label for="k12App">Application</label>
+					<input id="k12App" placeholder="e.g. BirBank" />
+				</div>
+				<div>
+					<label for="k12Year">Year</label>
+					<select id="k12Year"></select>
+				</div>
+				<div>
+					<label for="k12Quarter">Quarter</label>
+					<select id="k12Quarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="k12Inc">Incidents</label>
+					<input id="k12Inc" type="number" min="0" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="k12Add">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>KRI13 (Downtime within RTO): Add application quarter data</h2>
+			<div class="grid">
+				<div>
+					<label for="k13App">Application</label>
+					<input id="k13App" placeholder="e.g. BirBank" />
+				</div>
+				<div>
+					<label for="k13Year">Year</label>
+					<select id="k13Year"></select>
+				</div>
+				<div>
+					<label for="k13Quarter">Quarter</label>
+					<select id="k13Quarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="k13Val">Number</label>
+					<input id="k13Val" type="number" min="0" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="k13Add">Add/Update</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>KRI19 (MTTR Minutes): Add application quarter data</h2>
+			<div class="grid">
+				<div>
+					<label for="k19App">Application</label>
+					<input id="k19App" placeholder="e.g. BirBank" />
+				</div>
+				<div>
+					<label for="k19Year">Year</label>
+					<select id="k19Year"></select>
+				</div>
+				<div>
+					<label for="k19Quarter">Quarter</label>
+					<select id="k19Quarter">
+						<option value="Q1">Q1</option>
+						<option value="Q2">Q2</option>
+						<option value="Q3">Q3</option>
+						<option value="Q4">Q4</option>
+					</select>
+				</div>
+				<div>
+					<label for="k19Val">Minutes</label>
+					<input id="k19Val" type="number" min="0" step="0.01" />
+				</div>
+				<div style="display:flex; align-items:end;">
+					<button class="btn" id="k19Add">Add/Update</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		let data = null;
+
+		async function loadData() {
+			const res = await fetch('/api/data');
+			if (!res.ok) throw new Error('Failed to load data');
+			data = await res.json();
+			document.getElementById('raw').textContent = JSON.stringify(data, null, 2);
+		}
+
+		async function saveData() {
+			const res = await fetch('/api/data', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data)
+			});
+			if (!res.ok) throw new Error('Failed to save');
+		}
+
+		function showMsg(txt, type='success') {
+			const msg = document.getElementById('msg');
+			msg.innerHTML = `<div class="message ${type}">${txt}</div>`;
+			setTimeout(() => msg.innerHTML = '', 2500);
+		}
+
+		function fillYearSelect(el, start=2023, end=2030, selected=2025) {
+			for (let y = start; y <= end; y++) {
+				const opt = document.createElement('option');
+				opt.value = String(y);
+				opt.textContent = y;
+				if (y === selected) opt.selected = true;
+				el.appendChild(opt);
+			}
+		}
+		function fillMonthSelect(el) {
+			const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+			months.forEach(m => {
+				const opt = document.createElement('option');
+				opt.value = m; opt.textContent = m; el.appendChild(opt);
+			});
+		}
+
+		document.getElementById('reloadBtn').addEventListener('click', async () => {
+			try { await loadData(); showMsg('Reloaded'); } catch(e) { showMsg(e.message, 'error'); }
+		});
+		document.getElementById('saveBtn').addEventListener('click', async () => {
+			try { await saveData(); showMsg('Saved to kri-data.json'); } catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// KRI2 add/update
+		document.getElementById('k2Add').addEventListener('click', async () => {
+			try {
+				const year = document.getElementById('k2Year').value;
+				const quarter = document.getElementById('k2Quarter').value;
+				const pctStr = document.getElementById('k2Pct').value;
+				const pct = parseFloat(pctStr);
+				if (isNaN(pct) || pct < 0 || pct > 100) throw new Error('Invalid percentage');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				if (!data.kri2) data.kri2 = { data: [] };
+				const list = data.kri2.data;
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, percentage: pct, date };
+				else list.push({ period, percentage: pct, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`KRI2 saved: ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// KRI10 add/update
+		document.getElementById('k10Add').addEventListener('click', async () => {
+			try {
+				const app = document.getElementById('k10App').value.trim();
+				const month = document.getElementById('k10Month').value;
+				const year = document.getElementById('k10Year').value;
+				const inc = parseInt(document.getElementById('k10Inc').value, 10);
+				if (!app) throw new Error('App name required');
+				if (isNaN(inc) || inc < 0) throw new Error('Invalid incidents');
+				const period = `${month}-${year}`;
+				const date = new Date(parseInt(year), parseInt(month)-1, 1).toISOString().slice(0,10);
+				if (!data.kri10) data.kri10 = { applications: {} };
+				if (!data.kri10.applications) data.kri10.applications = {};
+				if (!data.kri10.applications[app]) data.kri10.applications[app] = [];
+				const list = data.kri10.applications[app];
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, incidents: inc, date };
+				else list.push({ period, incidents: inc, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`KRI10 saved: ${app} ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// Quarter percentage generic
+		document.getElementById('kPctAdd').addEventListener('click', async () => {
+			try {
+				const kriId = document.getElementById('kPctKri').value;
+				const year = document.getElementById('kPctYear').value;
+				const quarter = document.getElementById('kPctQuarter').value;
+				const val = parseFloat(document.getElementById('kPctValue').value);
+				if (isNaN(val) || val < 0 || val > 100) throw new Error('Invalid percentage');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				if (!data[kriId]) data[kriId] = { data: [] };
+				const list = data[kriId].data;
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, percentage: val, date };
+				else list.push({ period, percentage: val, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`${kriId} saved: ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// Quarter count generic
+		document.getElementById('kCntAdd').addEventListener('click', async () => {
+			try {
+				const kriId = document.getElementById('kCntKri').value;
+				const year = document.getElementById('kCntYear').value;
+				const quarter = document.getElementById('kCntQuarter').value;
+				const val = parseInt(document.getElementById('kCntValue').value, 10);
+				if (isNaN(val) || val < 0) throw new Error('Invalid count');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				if (!data[kriId]) data[kriId] = { data: [] };
+				const list = data[kriId].data;
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, count: val, date };
+				else list.push({ period, count: val, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`${kriId} saved: ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		function ensureApps(kriId){ if (!data[kriId]) data[kriId] = { applications: {} }; if (!data[kriId].applications) data[kriId].applications = {}; }
+
+		// KRI8 app quarter value (days)
+		document.getElementById('k8Add').addEventListener('click', async () => {
+			try {
+				const app = document.getElementById('k8App').value.trim();
+				const year = document.getElementById('k8Year').value;
+				const quarter = document.getElementById('k8Quarter').value;
+				const val = parseFloat(document.getElementById('k8Value').value);
+				if (!app) throw new Error('App name required');
+				if (isNaN(val) || val < 0) throw new Error('Invalid days');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				ensureApps('kri8');
+				if (!data.kri8.applications[app]) data.kri8.applications[app] = [];
+				const list = data.kri8.applications[app];
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, value: val, date };
+				else list.push({ period, value: val, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`KRI8 saved: ${app} ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// KRI12 app quarter incidents
+		document.getElementById('k12Add').addEventListener('click', async () => {
+			try {
+				const app = document.getElementById('k12App').value.trim();
+				const year = document.getElementById('k12Year').value;
+				const quarter = document.getElementById('k12Quarter').value;
+				const inc = parseInt(document.getElementById('k12Inc').value, 10);
+				if (!app) throw new Error('App name required');
+				if (isNaN(inc) || inc < 0) throw new Error('Invalid incidents');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				ensureApps('kri12');
+				if (!data.kri12.applications[app]) data.kri12.applications[app] = [];
+				const list = data.kri12.applications[app];
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, incidents: inc, date };
+				else list.push({ period, incidents: inc, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`KRI12 saved: ${app} ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// KRI13 app quarter value (number)
+		document.getElementById('k13Add').addEventListener('click', async () => {
+			try {
+				const app = document.getElementById('k13App').value.trim();
+				const year = document.getElementById('k13Year').value;
+				const quarter = document.getElementById('k13Quarter').value;
+				const val = parseInt(document.getElementById('k13Val').value, 10);
+				if (!app) throw new Error('App name required');
+				if (isNaN(val) || val < 0) throw new Error('Invalid number');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				ensureApps('kri13');
+				if (!data.kri13.applications[app]) data.kri13.applications[app] = [];
+				const list = data.kri13.applications[app];
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, value: val, date };
+				else list.push({ period, value: val, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`KRI13 saved: ${app} ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// KRI19 app quarter value (minutes)
+		document.getElementById('k19Add').addEventListener('click', async () => {
+			try {
+				const app = document.getElementById('k19App').value.trim();
+				const year = document.getElementById('k19Year').value;
+				const quarter = document.getElementById('k19Quarter').value;
+				const val = parseFloat(document.getElementById('k19Val').value);
+				if (!app) throw new Error('App name required');
+				if (isNaN(val) || val < 0) throw new Error('Invalid minutes');
+				const period = `${quarter}-${year}`;
+				const date = new Date(parseInt(year), {Q1:0,Q2:3,Q3:6,Q4:9}[quarter], 1).toISOString().slice(0,10);
+				ensureApps('kri19');
+				if (!data.kri19.applications[app]) data.kri19.applications[app] = [];
+				const list = data.kri19.applications[app];
+				const idx = list.findIndex(x => x.period === period);
+				if (idx >= 0) list[idx] = { period, value: val, date };
+				else list.push({ period, value: val, date });
+				list.sort((a,b) => new Date(a.date) - new Date(b.date));
+				await saveData();
+				await loadData();
+				showMsg(`KRI19 saved: ${app} ${period}`);
+			} catch(e) { showMsg(e.message, 'error'); }
+		});
+
+		// init selects and data
+		fillYearSelect(document.getElementById('k2Year'));
+		fillYearSelect(document.getElementById('k10Year'));
+		fillMonthSelect(document.getElementById('k10Month'));
+		fillYearSelect(document.getElementById('kPctYear'));
+		fillYearSelect(document.getElementById('kCntYear'));
+		fillYearSelect(document.getElementById('k8Year'));
+		fillYearSelect(document.getElementById('k12Year'));
+		fillYearSelect(document.getElementById('k13Year'));
+		fillYearSelect(document.getElementById('k19Year'));
+		loadData().catch(e => showMsg(e.message, 'error'));
+	</script>
+</body>
+</html>

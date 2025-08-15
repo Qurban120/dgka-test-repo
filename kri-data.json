@@ -1,0 +1,743 @@
+{
+  "kri2": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 100,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 100,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri3": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 100,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 100,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri4": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "count": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "count": 0,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri5": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 0,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri6": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 18,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 0.6,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri8": {
+    "applications": {
+      "BirBank": [
+        {
+          "period": "Q1-2025",
+          "value": 22,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 7,
+          "date": "2025-04-01"
+        }
+      ],
+      "BirBank-Business": [
+        {
+          "period": "Q1-2025",
+          "value": 29,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 63,
+          "date": "2025-04-01"
+        }
+      ],
+      "ODIN": [
+        {
+          "period": "Q1-2025",
+          "value": 194,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 285,
+          "date": "2025-04-01"
+        }
+      ],
+      "ELMA BPM": [
+        {
+          "period": "Q1-2025",
+          "value": 29,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 13,
+          "date": "2025-04-01"
+        }
+      ],
+      "Optimus": [
+        {
+          "period": "Q1-2025",
+          "value": 51,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 142,
+          "date": "2025-04-01"
+        }
+      ],
+      "CMS": [
+        {
+          "period": "Q1-2025",
+          "value": 18,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 60,
+          "date": "2025-04-01"
+        }
+      ],
+      "TWO": [
+        {
+          "period": "Q1-2025",
+          "value": 36,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 15,
+          "date": "2025-04-01"
+        }
+      ],
+      "Zeus": [
+        {
+          "period": "Q1-2025",
+          "value": 45,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 7,
+          "date": "2025-04-01"
+        }
+      ]
+    }
+  },
+  "kri9": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "count": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "count": 0,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri10": {
+    "applications": {
+      "BirBank-Business": [
+        {
+          "period": "01-2025",
+          "incidents": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "02-2025",
+          "incidents": 2,
+          "date": "2025-02-01"
+        },
+        {
+          "period": "03-2025",
+          "incidents": 1,
+          "date": "2025-03-01"
+        },
+        {
+          "period": "04-2025",
+          "incidents": 3,
+          "date": "2025-04-01"
+        }
+      ],
+      "BirBank": [
+        {
+          "period": "01-2025",
+          "incidents": 8.0,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "02-2025",
+          "incidents": 12,
+          "date": "2025-02-01"
+        },
+        {
+          "period": "03-2025",
+          "incidents": 12,
+          "date": "2025-03-01"
+        },
+        {
+          "period": "04-2025",
+          "incidents": 6,
+          "date": "2025-04-01"
+        },
+        {
+          "period": "05-2025",
+          "incidents": 6,
+          "date": "2025-05-01"
+        },
+        {
+          "period": "06-2025",
+          "incidents": 9,
+          "date": "2025-06-01"
+        }
+      ],
+      "CMS": [
+        {
+          "period": "03-2025",
+          "incidents": 3,
+          "date": "2025-03-01"
+        },
+        {
+          "period": "04-2025",
+          "incidents": 3,
+          "date": "2025-04-01"
+        }
+      ],
+      "ELMA BPM": [
+        {
+          "period": "03-2025",
+          "incidents": 1,
+          "date": "2025-03-01"
+        },
+        {
+          "period": "04-2025",
+          "incidents": 2,
+          "date": "2025-04-01"
+        },
+        {
+          "period": "06-2025",
+          "incidents": 1,
+          "date": "2025-06-01"
+        }
+      ],
+      "TWO": [
+        {
+          "period": "01-2025",
+          "incidents": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "02-2025",
+          "incidents": 2,
+          "date": "2025-02-01"
+        },
+        {
+          "period": "03-2025",
+          "incidents": 1,
+          "date": "2025-03-01"
+        },
+        {
+          "period": "04-2025",
+          "incidents": 1,
+          "date": "2025-04-01"
+        },
+        {
+          "period": "06-2025",
+          "incidents": 2,
+          "date": "2025-06-01"
+        }
+      ],
+      "Zeus": [
+        {
+          "period": "01-2025",
+          "incidents": 3,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "02-2025",
+          "incidents": 3,
+          "date": "2025-02-01"
+        },
+        {
+          "period": "03-2025",
+          "incidents": 2,
+          "date": "2025-03-01"
+        },
+        {
+          "period": "04-2025",
+          "incidents": 1,
+          "date": "2025-04-01"
+        },
+        {
+          "period": "05-2025",
+          "incidents": 4,
+          "date": "2025-05-01"
+        },
+        {
+          "period": "06-2025",
+          "incidents": 2,
+          "date": "2025-06-01"
+        }
+      ],
+      "Optimus": [
+        {
+          "period": "02-2025",
+          "incidents": 2,
+          "date": "2025-02-01"
+        },
+        {
+          "period": "06-2025",
+          "incidents": 0,
+          "date": "2025-06-01"
+        }
+      ],
+      "ODIN": []
+    }
+  },
+  "kri12": {
+    "applications": {
+      "BirBank-Business": [
+        {
+          "period": "Q1-2025",
+          "incidents": 2,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 2,
+          "date": "2025-04-01"
+        }
+      ],
+      "BirBank": [
+        {
+          "period": "Q1-2025",
+          "incidents": 18,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 12,
+          "date": "2025-04-01"
+        }
+      ],
+      "CMS": [
+        {
+          "period": "Q1-2025",
+          "incidents": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 2,
+          "date": "2025-04-01"
+        }
+      ],
+      "ELMA BPM": [
+        {
+          "period": "Q1-2025",
+          "incidents": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 2,
+          "date": "2025-04-01"
+        }
+      ],
+      "TWO": [
+        {
+          "period": "Q1-2025",
+          "incidents": 0,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 1,
+          "date": "2025-04-01"
+        }
+      ],
+      "Zeus": [
+        {
+          "period": "Q1-2025",
+          "incidents": 6,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 2,
+          "date": "2025-04-01"
+        }
+      ],
+      "Optimus": [
+        {
+          "period": "Q1-2025",
+          "incidents": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 0,
+          "date": "2025-04-01"
+        }
+      ],
+      "ODIN": [
+        {
+          "period": "Q1-2025",
+          "incidents": 0,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "incidents": 0,
+          "date": "2025-04-01"
+        }
+      ]
+    }
+  },
+  "kri13": {
+    "applications": {
+      "BirBank": [
+        {
+          "period": "Q1-2025",
+          "value": 14,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 9,
+          "date": "2025-04-01"
+        }
+      ],
+      "BirBank-Business": [
+        {
+          "period": "Q1-2025",
+          "value": 2,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 1,
+          "date": "2025-04-01"
+        }
+      ],
+      "ODIN": [
+        {
+          "period": "Q1-2025",
+          "value": 0,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 0,
+          "date": "2025-04-01"
+        }
+      ],
+      "ELMA BPM": [
+        {
+          "period": "Q1-2025",
+          "value": 0,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 1,
+          "date": "2025-04-01"
+        }
+      ],
+      "Optimus": [
+        {
+          "period": "Q1-2025",
+          "value": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 0,
+          "date": "2025-04-01"
+        }
+      ],
+      "CMS": [
+        {
+          "period": "Q1-2025",
+          "value": 2,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 1,
+          "date": "2025-04-01"
+        }
+      ],
+      "TWO": [
+        {
+          "period": "Q1-2025",
+          "value": 4,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 2,
+          "date": "2025-04-01"
+        }
+      ],
+      "Zeus": [
+        {
+          "period": "Q1-2025",
+          "value": 1,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 5,
+          "date": "2025-04-01"
+        }
+      ]
+    }
+  },
+  "kri15": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 71,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 24,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri18": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 38,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri19": {
+    "applications": {
+      "BirBank": [
+        {
+          "period": "Q1-2025",
+          "value": 3125.9,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 3973.4,
+          "date": "2025-04-01"
+        }
+      ],
+      "BirBank-Business": [
+        {
+          "period": "Q1-2025",
+          "value": 407.5,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 1811,
+          "date": "2025-04-01"
+        }
+      ],
+      "ODIN": [
+        {
+          "period": "Q1-2025",
+          "value": 0,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 0,
+          "date": "2025-04-01"
+        }
+      ],
+      "ELMA BPM": [
+        {
+          "period": "Q1-2025",
+          "value": 269,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 892.3,
+          "date": "2025-04-01"
+        }
+      ],
+      "Optimus": [
+        {
+          "period": "Q1-2025",
+          "value": 207.5,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 0,
+          "date": "2025-04-01"
+        }
+      ],
+      "CMS": [
+        {
+          "period": "Q1-2025",
+          "value": 73,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 644,
+          "date": "2025-04-01"
+        }
+      ],
+      "TWO": [
+        {
+          "period": "Q1-2025",
+          "value": 31.25,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 353.6,
+          "date": "2025-04-01"
+        }
+      ],
+      "Zeus": [
+        {
+          "period": "Q1-2025",
+          "value": 1734.4,
+          "date": "2025-01-01"
+        },
+        {
+          "period": "Q2-2025",
+          "value": 59.1,
+          "date": "2025-04-01"
+        }
+      ]
+    }
+  },
+  "kri20": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "count": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "count": 1,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri21": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "count": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "count": 0,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri22": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 94.04,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 95.35,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri27": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 0,
+        "date": "2025-04-01"
+      }
+    ]
+  },
+  "kri28": {
+    "data": [
+      {
+        "period": "Q1-2025",
+        "percentage": 0,
+        "date": "2025-01-01"
+      },
+      {
+        "period": "Q2-2025",
+        "percentage": 2.4,
+        "date": "2025-04-01"
+      }
+    ]
+  }
+}

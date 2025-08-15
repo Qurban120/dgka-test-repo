@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRI Dashboards (SQLite, No Dates)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --light-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #e1e5fe;
+            --text: #333;
+            --text-light: #666;
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --gradient-bg: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--light-bg);
+            color: var(--text);
+            background-color: rgb(217, 228, 241);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; position: relative; width: 100%; padding: 20px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; justify-content: center; }
+        .header { grid-column: 1 / -1; text-align: center; padding: 20px; background: var(--gradient-bg); color: white; border-radius: 12px; margin-bottom: 20px; }
+
+        .dashboard-card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; text-align: center; transition: transform 0.3s ease; height: 100%; display: flex; flex-direction: column; justify-content: space-between; min-height: 350px; }
+        .dashboard-card:hover { transform: translateY(-5px); }
+        .dashboard-card h2 { margin: 0 0 10px 0; font-size: 22px; color: var(--primary); }
+        .dashboard-card p { margin: 0 0 10px 0; font-size: 14px; color: var(--text-light); line-height: 1.4; }
+        .dashboard-card .threshold { margin-bottom: 10px; font-size: 13px; color: var(--text); font-weight: 600; }
+
+        .chart-container { position: relative; height: 180px; margin-top: 10px; flex-grow: 1; }
+        .btn-view { padding: 10px 20px; background: var(--gradient-bg); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.2s; margin-top: auto; }
+        .btn-view:hover { transform: translateY(-2px); }
+
+        .dashboard { display: none; width: 100%; min-height: 100vh; padding: 20px; background: var(--light-bg); }
+        .dashboard.active { display: block; }
+
+        .back-button { position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: white; color: var(--primary); border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow); display: flex; align-items: center; }
+        .back-button::before { content: '←'; margin-right: 8px; }
+        .back-button:hover { background: var(--primary); color: white; transform: translateY(-2px); }
+
+        .date-time { font-size: 14px; color: #fff; margin-top: 5px; }
+        .data-status { position: fixed; top: 20px; right: 20px; padding: 10px 15px; border-radius: 6px; font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0.9; }
+        .data-status.success { background: var(--success); color: white; }
+        .data-status.error { background: var(--danger); color: white; }
+
+        @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } .dashboard-card { min-height: 320px; } }
+
+        .dashboard .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden; }
+        .dashboard .card .header { background: var(--gradient-bg); color: white; padding: 32px; text-align: center; }
+        .dashboard .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; padding: 24px; }
+        .dashboard .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .dashboard .app-selector { padding: 20px; background: var(--light-bg); border-radius: 8px; }
+        .dashboard .kpi-cards { display: grid; gap: 16px; }
+        .dashboard .kpi-card { padding: 20px; background: linear-gradient(135deg, #f8f9ff, #e8eaff); border: 2px solid var(--border); border-radius: 8px; text-align: center; }
+        .dashboard .kpi-card.alert { background: linear-gradient(135deg, #ffebee, #ffcdd2); border-color: var(--danger); }
+        .dashboard .kpi-value { font-size: 32px; font-weight: 800; margin-bottom: 8px; color: var(--primary); }
+        .dashboard .kpi-value.danger { color: var(--danger); }
+
+        .dashboard .forms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px; }
+        .dashboard .form-section { padding: 24px; background: var(--light-bg); border-radius: 8px; }
+        .dashboard .form-group { margin-bottom: 16px; }
+        .dashboard .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+        .dashboard .form-group input, .dashboard .form-group select { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 6px; font-size: 16px; transition: border-color 0.3s; }
+        .dashboard .btn { width: 100%; padding: 12px 20px; background: var(--gradient-bg); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .dashboard .btn-success { background: linear-gradient(135deg, var(--success), #45a049); }
+        .dashboard .btn-danger { background: linear-gradient(135deg, var(--danger), #d32f2f); }
+
+        .message { padding: 10px; margin-top: 10px; border-radius: 5px; text-align: center; }
+        .message-success { background-color: #e8f5e9; color: #2e7d32; }
+        .message-error { background-color: #ffebee; color: #c62828; }
+    </style>
+</head>
+<body>
+    <div id="dataStatus" class="data-status" style="display: none;"></div>
+
+    <div class="container" id="mainPage">
+        <div class="header">
+            <h1>KRI Dashboards</h1>
+            <div id="currentDateTime" class="date-time"></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card"><h2>KRI2 Dashboard</h2><p>Percentage of critical initiatives/projects engage with information security at the requirements phase</p><div class="threshold">Threshold: 95%</div><div class="chart-container"><canvas id="kri2ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri2')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI3 Dashboard</h2><p>Percentage of environments evaluated to determine whether or not they are critical</p><div class="threshold">Threshold: 80%</div><div class="chart-container"><canvas id="kri3ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri3')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI4 Dashboard</h2><p>Number of realized risk from weak/low-probability threats</p><div class="threshold">Threshold: 1 realized risk</div><div class="chart-container"><canvas id="kri4ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri4')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI5 Dashboard</h2><p>Percentage of outstanding Critical risk mitigation actions vs. plan</p><div class="threshold">Threshold: 0%</div><div class="chart-container"><canvas id="kri5ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri5')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI6 Dashboard</h2><p>Percentage of outstanding High/Moderate mitigation actions vs. plan</p><div class="threshold">Threshold: 10%</div><div class="chart-container"><canvas id="kri6ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri6')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI8 Dashboard</h2><p>Mean Time Between Critical System Failures (Days)</p><div class="threshold">Threshold: 120 days</div><div class="chart-container"><canvas id="kri8ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri8')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI9 Dashboard</h2><p>Unauthorized access to strictly confidential data</p><div class="threshold">Threshold: 0</div><div class="chart-container"><canvas id="kri9ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri9')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI10 Dashboard</h2><p>Incidents affecting critical applications</p><div class="threshold">Threshold: 2 per month</div><div class="chart-container"><canvas id="kri10ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri10')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI12 Dashboard</h2><p>Incidents Exceeding RTO</p><div class="threshold">Threshold: 0</div><div class="chart-container"><canvas id="kri12ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri12')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI13 Dashboard</h2><p>Incidents with downtime within RTO</p><div class="threshold">Threshold: 2</div><div class="chart-container"><canvas id="kri13ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri13')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI15 Dashboard</h2><p>% of Critical Systems without up to date patches</p><div class="threshold">Threshold: 0%</div><div class="chart-container"><canvas id="kri15ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri15')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI18 Dashboard</h2><p>% of critical systems not in BCP/DR plans</p><div class="threshold">Threshold: 10%</div><div class="chart-container"><canvas id="kri18ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri18')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI19 Dashboard</h2><p>Average time to recover from an incident (minutes)</p><div class="threshold">Threshold: < RTO</div><div class="chart-container"><canvas id="kri19ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri19')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI20 Dashboard</h2><p>Incidents with loss of customer information</p><div class="threshold">Threshold: 0</div><div class="chart-container"><canvas id="kri20ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri20')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI21 Dashboard</h2><p>Privacy incidents leading to legal/reg proceedings</p><div class="threshold">Threshold: 0</div><div class="chart-container"><canvas id="kri21ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri21')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI22 Dashboard</h2><p>% of incidents detected by controls</p><div class="threshold">Threshold: 70%</div><div class="chart-container"><canvas id="kri22ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri22')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI27 Dashboard</h2><p>% of Critical risks without owner/approved plan</p><div class="threshold">Threshold: 0%</div><div class="chart-container"><canvas id="kri27ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri27')">View Details</button></div>
+            <div class="dashboard-card"><h2>KRI28 Dashboard</h2><p>% of High/Moderate risks without owner/approved plan</p><div class="threshold">Threshold: 10%</div><div class="chart-container"><canvas id="kri28ComparisonChartMain"></canvas></div><button class="btn-view" onclick="navigateTo('kri28')">View Details</button></div>
+        </div>
+    </div>
+
+    <div class="container dashboard" id="kri2Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI2</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri2CurrentKpi"><div class="kpi-value" id="kri2CurrentValue">-</div><div class="trend" id="kri2TrendBadge"><span id="kri2TrendIcon">-</span><span id="kri2TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri2ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri2TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri2ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri3Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI3</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri3CurrentKpi"><div class="kpi-value" id="kri3CurrentValue">-</div><div class="trend" id="kri3TrendBadge"><span id="kri3TrendIcon">-</span><span id="kri3TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri3ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri3TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri3ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri4Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI4</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri4CurrentKpi"><div class="kpi-value" id="kri4CurrentValue">-</div><div class="trend" id="kri4TrendBadge"><span id="kri4TrendIcon">-</span><span id="kri4TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri4ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri4TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri4ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri5Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI5</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri5CurrentKpi"><div class="kpi-value" id="kri5CurrentValue">-</div><div class="trend" id="kri5TrendBadge"><span id="kri5TrendIcon">-</span><span id="kri5TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri5ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri5TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri5ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri6Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI6</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri6CurrentKpi"><div class="kpi-value" id="kri6CurrentValue">-</div><div class="trend" id="kri6TrendBadge"><span id="kri6TrendIcon">-</span><span id="kri6TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri6ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri6TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri6ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri8Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI8</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="app-selector"><label for="kri8AppSelect">Select System:</label><select id="kri8AppSelect"><option value="">Select a system...</option></select></div><div class="kpi-cards"><div class="kpi-card" id="kri8CurrentKpi"><div class="kpi-value" id="kri8CurrentValue">-</div><div class="trend" id="kri8TrendBadge"><span id="kri8TrendIcon">-</span><span id="kri8TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri8ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri8TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">System Comparison</h2><div class="chart-container"><canvas id="kri8ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri9Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI9</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri9CurrentKpi"><div class="kpi-value" id="kri9CurrentValue">-</div><div class="trend" id="kri9TrendBadge"><span id="kri9TrendIcon">-</span><span id="kri9TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri9ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri9TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri9ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri10Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI10</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="app-selector"><label for="kri10AppSelect">Select System:</label><select id="kri10AppSelect"><option value="">Select a system...</option></select></div><div class="kpi-cards"><div class="kpi-card" id="kri10CurrentKpi"><div class="kpi-value" id="kri10CurrentValue">-</div><div class="trend" id="kri10TrendBadge"><span id="kri10TrendIcon">-</span><span id="kri10TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri10ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri10TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">System Comparison</h2><div class="chart-container"><canvas id="kri10ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri12Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI12</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="app-selector"><label for="kri12AppSelect">Select System:</label><select id="kri12AppSelect"><option value="">Select a system...</option></select></div><div class="kpi-cards"><div class="kpi-card" id="kri12CurrentKpi"><div class="kpi-value" id="kri12CurrentValue">-</div><div class="trend" id="kri12TrendBadge"><span id="kri12TrendIcon">-</span><span id="kri12TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri12ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri12TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">System Comparison</h2><div class="chart-container"><canvas id="kri12ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri13Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI13</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="app-selector"><label for="kri13AppSelect">Select System:</label><select id="kri13AppSelect"><option value="">Select a system...</option></select></div><div class="kpi-cards"><div class="kpi-card" id="kri13CurrentKpi"><div class="kpi-value" id="kri13CurrentValue">-</div><div class="trend" id="kri13TrendBadge"><span id="kri13TrendIcon">-</span><span id="kri13TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri13ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri13TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">System Comparison</h2><div class="chart-container"><canvas id="kri13ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri15Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI15</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri15CurrentKpi"><div class="kpi-value" id="kri15CurrentValue">-</div><div class="trend" id="kri15TrendBadge"><span id="kri15TrendIcon">-</span><span id="kri15TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri15ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri15TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri15ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri18Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI18</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri18CurrentKpi"><div class="kpi-value" id="kri18CurrentValue">-</div><div class="trend" id="kri18TrendBadge"><span id="kri18TrendIcon">-</span><span id="kri18TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri18ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri18TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri18ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri19Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI19</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="app-selector"><label for="kri19AppSelect">Select System:</label><select id="kri19AppSelect"><option value="">Select a system...</option></select></div><div class="kpi-cards"><div class="kpi-card" id="kri19CurrentKpi"><div class="kpi-value" id="kri19CurrentValue">-</div><div class="trend" id="kri19TrendBadge"><span id="kri19TrendIcon">-</span><span id="kri19TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri19ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri19TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">System Comparison</h2><div class="chart-container"><canvas id="kri19ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri20Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI20</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri20CurrentKpi"><div class="kpi-value" id="kri20CurrentValue">-</div><div class="trend" id="kri20TrendBadge"><span id="kri20TrendIcon">-</span><span id="kri20TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri20ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri20TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri20ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri21Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI21</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri21CurrentKpi"><div class="kpi-value" id="kri21CurrentValue">-</div><div class="trend" id="kri21TrendBadge"><span id="kri21TrendIcon">-</span><span id="kri21TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri21ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri21TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri21ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri22Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI22</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri22CurrentKpi"><div class="kpi-value" id="kri22CurrentValue">-</div><div class="trend" id="kri22TrendBadge"><span id="kri22TrendIcon">-</span><span id="kri22TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri22ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri22TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri22ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri27Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI27</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri27CurrentKpi"><div class="kpi-value" id="kri27CurrentValue">-</div><div class="trend" id="kri27TrendBadge"><span id="kri27TrendIcon">-</span><span id="kri27TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri27ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri27TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri27ComparisonChart"></canvas></div></div>
+    </div>
+
+    <div class="container dashboard" id="kri28Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>KRI28</h1><div id="currentDateTime" class="date-time"></div></div></div>
+        <div class="card"><div class="grid"><div class="sidebar"><div class="kpi-cards"><div class="kpi-card" id="kri28CurrentKpi"><div class="kpi-value" id="kri28CurrentValue">-</div><div class="trend" id="kri28TrendBadge"><span id="kri28TrendIcon">-</span><span id="kri28TrendText">Loading...</span></div></div><div class="kpi-card"><div class="kpi-value" id="kri28ChangeValue">-</div><div class="kpi-label">Change</div></div></div></div><div class="chart-container"><canvas id="kri28TrendChart"></canvas></div></div></div>
+        <div class="card"><h2 class="section-title">Quarter Comparison</h2><div class="chart-container"><canvas id="kri28ComparisonChart"></canvas></div></div>
+    </div>
+
+    <script>
+        let globalKRIData = {};
+        let dashboards = {};
+
+        function navigateTo(dashboardId) { window.location.hash = `#${dashboardId}Dashboard`; showDashboard(dashboardId); }
+        function navigateBack() { window.location.hash = '#mainPage'; showDashboard('main'); }
+        function showDashboard(dashboardId) {
+            const pages = ['mainPage','kri2Dashboard','kri3Dashboard','kri4Dashboard','kri5Dashboard','kri6Dashboard','kri8Dashboard','kri9Dashboard','kri10Dashboard','kri12Dashboard','kri13Dashboard','kri15Dashboard','kri18Dashboard','kri19Dashboard','kri20Dashboard','kri21Dashboard','kri22Dashboard','kri27Dashboard','kri28Dashboard'];
+            pages.forEach(page => { const el = document.getElementById(page); if (el) el.style.display = page === dashboardId || (dashboardId === 'main' && page === 'mainPage') ? 'block' : 'none'; });
+        }
+        function showDataStatus(message, type='success'){ const el=document.getElementById('dataStatus'); el.textContent=message; el.className=`data-status ${type}`; el.style.display='block'; setTimeout(()=>{el.style.display='none';},3000); }
+
+        async function loadKRIData(){ try{ const res=await fetch('/api/kri-data'); if(!res.ok) throw new Error('HTTP '+res.status); globalKRIData=await res.json(); showDataStatus('Data loaded'); return globalKRIData; }catch(e){ console.error(e); showDataStatus('Load failed','error'); return {}; } }
+
+        function updateDateTime(){ const now=new Date(); const s=now.toLocaleString(); document.querySelectorAll('#currentDateTime').forEach(el=>el.textContent=s); }
+
+        class BaseDashboard{
+            constructor(data,kriId,dataKey='percentage',threshold=0,isHigherBetter=true){ this.kriId=kriId; this.dataKey=dataKey; this.threshold=threshold; this.isHigherBetter=isHigherBetter; this.data=(data[kriId]?.data||[]); this.charts={trend:null,comparison:null,comparisonMain:null}; this.initCharts(); this.renderForms(); this.updateUI(); }
+            initCharts(){ const tctx=document.getElementById(`${this.kriId}TrendChart`).getContext('2d'); this.charts.trend=new Chart(tctx,{type:'line',data:{labels:[],datasets:[{label:this.dataKey==='percentage'?'Percentage':'Count',data:[],borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.1)',borderWidth:3,fill:true,tension:0.4,pointRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:this.dataKey==='percentage'?100:undefined}}}});
+                const cctx=document.getElementById(`${this.kriId}ComparisonChart`).getContext('2d'); this.charts.comparison=new Chart(cctx,{type:'bar',data:{labels:[],datasets:[{label:this.dataKey==='percentage'?'Percentage':'Count',data:[],backgroundColor:[],borderColor:[],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:this.dataKey==='percentage'?100:undefined}},plugins:{legend:{display:false}}}});
+                const mctx=document.getElementById(`${this.kriId}ComparisonChartMain`).getContext('2d'); this.charts.comparisonMain=new Chart(mctx,{type:'bar',data:{labels:[],datasets:[{label:this.dataKey==='percentage'?'Percentage':'Count',data:[],backgroundColor:[],borderColor:[],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:this.dataKey==='percentage'?100:undefined}},plugins:{legend:{display:false}}}}); }
+            renderForms(){ const container=document.getElementById(`${this.kriId}Dashboard`); if(!container) return; const card=document.createElement('div'); card.className='card'; const label=this.dataKey==='percentage'?'Add Percentage':'Add Value'; const step=this.dataKey==='percentage'?'0.01':'1'; const min='0'; card.innerHTML=`<div class="forms-grid"><div class="form-section"><h3>Add Data Point</h3><form id="${this.kriId}DataForm"><div class="form-group"><label>Period (e.g., Q2-2025 or 06-2025):</label><input type="text" id="${this.kriId}PeriodInput" placeholder="Q2-2025" required></div><div class="form-group"><label for="${this.kriId}ValueInput">${label}:</label><input type="number" id="${this.kriId}ValueInput" step="${step}" min="${min}" required></div><button type="submit" class="btn">Add Data Point</button></form><div id="${this.kriId}DataMessage"></div></div><div class="form-section"><h3>Update/Delete Data Point</h3><form id="${this.kriId}UpdateForm"><div class="form-group"><label>Existing Period:</label><input type="text" id="${this.kriId}UpdatePeriod" placeholder="Q2-2025" required></div><div class="form-group"><label>New Value:</label><input type="number" id="${this.kriId}UpdateValue" step="${step}" min="${min}" required></div><button type="submit" class="btn btn-success">Update</button></form><form id="${this.kriId}DeleteForm" style="margin-top:16px;"><div class="form-group"><label>Delete Period:</label><input type="text" id="${this.kriId}DeletePeriod" placeholder="Q2-2025" required></div><button type="submit" class="btn btn-danger">Delete</button></form><div id="${this.kriId}UpdateMessage"></div></div></div>`; container.appendChild(card);
+                document.getElementById(`${this.kriId}DataForm`).addEventListener('submit',(e)=>{ e.preventDefault(); this.handleAddDataPoint(); });
+                document.getElementById(`${this.kriId}UpdateForm`).addEventListener('submit',(e)=>{ e.preventDefault(); this.handleUpdateDataPoint(); });
+                document.getElementById(`${this.kriId}DeleteForm`).addEventListener('submit',(e)=>{ e.preventDefault(); this.handleDeleteDataPoint(); }); }
+            async handleAddDataPoint(){ const period=document.getElementById(`${this.kriId}PeriodInput`).value.trim(); const valRaw=document.getElementById(`${this.kriId}ValueInput`).value; const msg=document.getElementById(`${this.kriId}DataMessage`); const v=parseFloat(valRaw); if(!period||isNaN(v)||v<0){ this.showMessage(msg,'Invalid input','error'); return;} try{ const res=await fetch('/api/add-data-point',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,period,value:v,valueField:this.dataKey})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.data=(payload.kri.data||[]); globalKRIData[this.kriId]=payload.kri; this.updateUI(); this.showMessage(msg,`Saved ${period}.`,'success'); showDataStatus('Saved'); document.getElementById(`${this.kriId}ValueInput`).value=''; document.getElementById(`${this.kriId}PeriodInput`).value=''; }catch(err){ console.error(err); this.showMessage(msg,'Save failed','error'); showDataStatus('Save failed','error'); }}
+            async handleUpdateDataPoint(){ const period=document.getElementById(`${this.kriId}UpdatePeriod`).value.trim(); const valRaw=document.getElementById(`${this.kriId}UpdateValue`).value; const msg=document.getElementById(`${this.kriId}UpdateMessage`); const v=parseFloat(valRaw); if(!period||isNaN(v)||v<0){ this.showMessage(msg,'Invalid input','error'); return;} try{ const res=await fetch('/api/update-data-point',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,period,value:v,valueField:this.dataKey})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.data=(payload.kri.data||[]); globalKRIData[this.kriId]=payload.kri; this.updateUI(); this.showMessage(msg,'Updated','success'); showDataStatus('Updated'); }catch(err){ console.error(err); this.showMessage(msg,'Update failed','error'); showDataStatus('Update failed','error'); }}
+            async handleDeleteDataPoint(){ const period=document.getElementById(`${this.kriId}DeletePeriod`).value.trim(); const msg=document.getElementById(`${this.kriId}UpdateMessage`); if(!period){ this.showMessage(msg,'Invalid period','error'); return;} try{ const res=await fetch('/api/delete-data-point',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,period})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.data=(payload.kri.data||[]); globalKRIData[this.kriId]=payload.kri; this.updateUI(); this.showMessage(msg,'Deleted','success'); showDataStatus('Deleted'); }catch(err){ console.error(err); this.showMessage(msg,'Delete failed','error'); showDataStatus('Delete failed','error'); }}
+            showMessage(el,text,type){ el.innerHTML=`<div class="message message-${type}">${text}</div>`; setTimeout(()=>el.innerHTML='',3000); }
+            updateUI(){ this.updateKPIs(); this.updateCharts(); }
+            updateKPIs(){ if(this.data.length===0){ this.setKPI('-','-','No data'); return; } const latest=this.data[this.data.length-1]; const latestVal=latest[this.dataKey]; let change='-'; if(this.data.length>=2){ const prev=this.data[this.data.length-2][this.dataKey]; const diff=latestVal-prev; change = this.dataKey==='percentage' ? (diff>0?`+${diff.toFixed(1)}%`:`${diff.toFixed(1)}%`) : (diff>0?`+${diff}`:`${diff}`); const badge=document.getElementById(`${this.kriId}TrendBadge`); const icon=document.getElementById(`${this.kriId}TrendIcon`); const txt=document.getElementById(`${this.kriId}TrendText`); if(diff>0){ badge.className='trend trend-up'; icon.textContent='↗'; txt.textContent=this.isHigherBetter?'Improved':'Increased'; }else if(diff<0){ badge.className='trend trend-down'; icon.textContent='↘'; txt.textContent=this.isHigherBetter?'Declined':'Decreased'; }else{ badge.className='trend trend-neutral'; icon.textContent='→'; txt.textContent='Unchanged'; } const alert = this.isHigherBetter ? latestVal < this.threshold : latestVal > this.threshold; const card=document.getElementById(`${this.kriId}CurrentKpi`); const valEl=document.getElementById(`${this.kriId}CurrentValue`); if(alert){ card.className='kpi-card alert'; valEl.className='kpi-value danger'; } else { card.className='kpi-card'; valEl.className='kpi-value'; } } document.getElementById(`${this.kriId}CurrentValue`).textContent = this.dataKey==='percentage'?`${Number(latestVal).toFixed(1)}%`:latestVal; document.getElementById(`${this.kriId}ChangeValue`).textContent = change; }
+            setKPI(cur,chg,txt){ document.getElementById(`${this.kriId}CurrentValue`).textContent=cur; document.getElementById(`${this.kriId}ChangeValue`).textContent=chg; document.getElementById(`${this.kriId}TrendText`).textContent=txt; }
+            updateCharts(){ const labels=this.data.map(d=>d.period); const values=this.data.map(d=>d[this.dataKey]); this.charts.trend.data.labels=labels; this.charts.trend.data.datasets[0].data=values; this.charts.trend.update(); const bg=values.map(v=>{ const good=this.isHigherBetter ? v>=this.threshold : v<=this.threshold; return good?'#4caf50':'#f44336'; }); this.charts.comparison.data={labels,datasets:[{label:this.dataKey==='percentage'?'Percentage':'Count',data:values,backgroundColor:bg,borderColor:bg,borderWidth:1}]}; this.charts.comparison.update(); this.charts.comparisonMain.data=this.charts.comparison.data; this.charts.comparisonMain.update(); }
+        }
+
+        class ApplicationsKRIDashboard{
+            constructor(data,kriId,metricLabel,metricKey='value',threshold=null,isHigherBetter=true){ this.kriId=kriId; this.metricLabel=metricLabel; this.metricKey=metricKey; this.threshold=threshold; this.isHigherBetter=isHigherBetter; this.applications=new Map(); if(data[kriId]&&data[kriId].applications){ for(const [name,arr] of Object.entries(data[kriId].applications)){ this.applications.set(name,arr); } } this.selectedApp=null; this.charts={trend:null,comparison:null,comparisonMain:null}; this.initCharts(); this.renderForms(); this.updateUI(); this.bindEvents(); }
+            bindEvents(){ const appSel=document.getElementById(`${this.kriId}AppSelect`); if(appSel) appSel.addEventListener('change',e=>{this.selectedApp=e.target.value; this.updateUI();}); const sysForm=document.getElementById(`${this.kriId}SystemForm`); if(sysForm) sysForm.addEventListener('submit',e=>{e.preventDefault(); this.handleAddSystem();}); const dataForm=document.getElementById(`${this.kriId}DataForm`); if(dataForm) dataForm.addEventListener('submit',e=>{e.preventDefault(); this.handleAddDataPoint();}); const updForm=document.getElementById(`${this.kriId}UpdateForm`); if(updForm) updForm.addEventListener('submit',e=>{e.preventDefault(); this.handleUpdateDataPoint();}); const delForm=document.getElementById(`${this.kriId}DeleteForm`); if(delForm) delForm.addEventListener('submit',e=>{e.preventDefault(); this.handleDeleteDataPoint();}); const delSysForm=document.getElementById(`${this.kriId}DeleteSystemForm`); if(delSysForm) delSysForm.addEventListener('submit',e=>{e.preventDefault(); this.handleDeleteSystem();}); }
+            renderForms(){ const container=document.getElementById(`${this.kriId}Dashboard`); if(!container) return; const card=document.createElement('div'); card.className='card'; card.innerHTML=`<div class="forms-grid"><div class="form-section"><h3>Add New System</h3><form id="${this.kriId}SystemForm"><div class="form-group"><label for="${this.kriId}SystemName">System Name:</label><input type="text" id="${this.kriId}SystemName" required></div><button type="submit" class="btn btn-success">Add System</button></form><form id="${this.kriId}DeleteSystemForm" style="margin-top:16px;"><div class="form-group"><label for="${this.kriId}DeleteSystemName">Delete System:</label><input type="text" id="${this.kriId}DeleteSystemName" required></div><button type="submit" class="btn btn-danger">Delete System</button></form><div id="${this.kriId}SystemMessage"></div></div><div class="form-section"><h3>Add Data Point</h3><form id="${this.kriId}DataForm"><div class="form-group"><label for="${this.kriId}DataApp">System:</label><select id="${this.kriId}DataApp" required><option value="">Select system...</option></select></div><div class="form-group"><label>Period (e.g., Q2-2025 or 06-2025):</label><input type="text" id="${this.kriId}PeriodInput" placeholder="Q2-2025" required></div><div class="form-group"><label for="${this.kriId}MetricValue">${this.metricLabel}:</label><input type="number" id="${this.kriId}MetricValue" step="0.01" min="0" required></div><button type="submit" class="btn">Add Data Point</button></form><div id="${this.kriId}DataMessage"></div></div><div class="form-section"><h3>Update/Delete Data Point</h3><form id="${this.kriId}UpdateForm"><div class="form-group"><label>System:</label><select id="${this.kriId}UpdateApp" required><option value="">Select system...</option></select></div><div class="form-group"><label>Existing Period:</label><input type="text" id="${this.kriId}UpdatePeriod" placeholder="Q2-2025" required></div><div class="form-group"><label>New Value:</label><input type="number" id="${this.kriId}UpdateValue" step="0.01" min="0" required></div><button type="submit" class="btn btn-success">Update</button></form><form id="${this.kriId}DeleteForm" style="margin-top:16px;"><div class="form-group"><label>System:</label><select id="${this.kriId}DeleteApp" required><option value="">Select system...</option></select></div><div class="form-group"><label>Delete Period:</label><input type="text" id="${this.kriId}DeletePeriod" placeholder="Q2-2025" required></div><button type="submit" class="btn btn-danger">Delete</button></form><div id="${this.kriId}UpdateMessage"></div></div></div>`; container.appendChild(card); }
+            async handleAddSystem(){ const nameInput=document.getElementById(`${this.kriId}SystemName`); const msg=document.getElementById(`${this.kriId}SystemMessage`); const name=(nameInput.value||'').trim(); if(!name){ this.showMessage(msg,'Enter system name','error'); return;} try{ const res=await fetch('/api/add-system',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,systemName:name})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.applications=new Map(Object.entries(payload.kri.applications||{})); this.updateUI(); this.showMessage(msg,`System "${name}" added`,'success'); showDataStatus('System added'); nameInput.value=''; }catch(err){ console.error(err); this.showMessage(msg,'Add system failed','error'); showDataStatus('Add system failed','error'); }}
+            async handleDeleteSystem(){ const nameInput=document.getElementById(`${this.kriId}DeleteSystemName`); const msg=document.getElementById(`${this.kriId}SystemMessage`); const name=(nameInput.value||'').trim(); if(!name){ this.showMessage(msg,'Enter system name','error'); return;} try{ const res=await fetch('/api/delete-system',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,systemName:name})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.applications=new Map(Object.entries(payload.kri.applications||{})); this.selectedApp=null; this.updateUI(); this.showMessage(msg,`System "${name}" deleted`,'success'); showDataStatus('System deleted'); nameInput.value=''; }catch(err){ console.error(err); this.showMessage(msg,'Delete system failed','error'); showDataStatus('Delete system failed','error'); }}
+            async handleAddDataPoint(){ const app=document.getElementById(`${this.kriId}DataApp`).value; const period=document.getElementById(`${this.kriId}PeriodInput`).value.trim(); const valRaw=document.getElementById(`${this.kriId}MetricValue`).value; const msg=document.getElementById(`${this.kriId}DataMessage`); const v=parseFloat(valRaw); if(!app||!period||isNaN(v)||v<0){ this.showMessage(msg,'Invalid input','error'); return;} try{ const res=await fetch('/api/add-data-point',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,systemName:app,period,value:v,valueField:this.metricKey})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.applications=new Map(Object.entries(payload.kri.applications||{})); globalKRIData[this.kriId]=payload.kri; this.selectedApp=app; this.updateUI(); this.showMessage(msg,`Saved ${period} for ${app}.`,'success'); showDataStatus('Saved'); document.getElementById(`${this.kriId}MetricValue`).value=''; document.getElementById(`${this.kriId}PeriodInput`).value=''; }catch(err){ console.error(err); this.showMessage(msg,'Save failed','error'); showDataStatus('Save failed','error'); }}
+            async handleUpdateDataPoint(){ const app=document.getElementById(`${this.kriId}UpdateApp`).value; const period=document.getElementById(`${this.kriId}UpdatePeriod`).value.trim(); const valRaw=document.getElementById(`${this.kriId}UpdateValue`).value; const msg=document.getElementById(`${this.kriId}UpdateMessage`); const v=parseFloat(valRaw); if(!app||!period||isNaN(v)||v<0){ this.showMessage(msg,'Invalid input','error'); return;} try{ const res=await fetch('/api/update-data-point',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,systemName:app,period,value:v})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.applications=new Map(Object.entries(payload.kri.applications||{})); globalKRIData[this.kriId]=payload.kri; this.updateUI(); this.showMessage(msg,'Updated','success'); showDataStatus('Updated'); }catch(err){ console.error(err); this.showMessage(msg,'Update failed','error'); showDataStatus('Update failed','error'); }}
+            async handleDeleteDataPoint(){ const app=document.getElementById(`${this.kriId}DeleteApp`).value; const period=document.getElementById(`${this.kriId}DeletePeriod`).value.trim(); const msg=document.getElementById(`${this.kriId}UpdateMessage`); if(!app||!period){ this.showMessage(msg,'Invalid input','error'); return;} try{ const res=await fetch('/api/delete-data-point',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({kriId:this.kriId,systemName:app,period})}); if(!res.ok) throw new Error(await res.text()); const payload=await res.json(); this.applications=new Map(Object.entries(payload.kri.applications||{})); globalKRIData[this.kriId]=payload.kri; this.updateUI(); this.showMessage(msg,'Deleted','success'); showDataStatus('Deleted'); }catch(err){ console.error(err); this.showMessage(msg,'Delete failed','error'); showDataStatus('Delete failed','error'); }}
+            updateUI(){ this.updateSelectors(); this.updateKPIs(); this.updateCharts(); }
+            updateSelectors(){ const sels=[`${this.kriId}AppSelect`,`${this.kriId}DataApp`,`${this.kriId}UpdateApp`,`${this.kriId}DeleteApp`]; const elements=sels.map(id=>document.getElementById(id)).filter(Boolean); elements.forEach(el=>el.innerHTML='<option value="">Select system...</option>'); this.applications.forEach((_,name)=>{ elements.forEach(el=>{ const o=document.createElement('option'); o.value=name; o.textContent=name; if(el.id===`${this.kriId}AppSelect` && name===this.selectedApp) o.selected=true; el.appendChild(o); }); }); }
+            updateKPIs(){ const curEl=document.getElementById(`${this.kriId}CurrentValue`); const chgEl=document.getElementById(`${this.kriId}ChangeValue`); const txtEl=document.getElementById(`${this.kriId}TrendText`); if(!this.selectedApp||!this.applications.has(this.selectedApp)){ curEl.textContent='-'; chgEl.textContent='-'; txtEl.textContent='Select app'; return;} const data=this.applications.get(this.selectedApp)||[]; if(data.length===0){ curEl.textContent='-'; chgEl.textContent='-'; txtEl.textContent='No data'; return;} const latest=data[data.length-1][this.metricKey]; curEl.textContent=latest; if(data.length>=2){ const prev=data[data.length-2][this.metricKey]; const diff=latest-prev; chgEl.textContent=diff>0?`+${diff}`:`${diff}`; const badge=document.getElementById(`${this.kriId}TrendBadge`); const icon=document.getElementById(`${this.kriId}TrendIcon`); if(diff>0){ badge.className='trend trend-up'; icon.textContent='↗'; txtEl.textContent=this.isHigherBetter?'Improved':'Increased'; }else if(diff<0){ badge.className='trend trend-down'; icon.textContent='↘'; txtEl.textContent=this.isHigherBetter?'Declined':'Decreased'; }else{ badge.className='trend trend-neutral'; icon.textContent='→'; txtEl.textContent='Unchanged'; } if(this.threshold!==null){ const alert=this.isHigherBetter?latest<this.threshold:latest>this.threshold; const card=document.getElementById(`${this.kriId}CurrentKpi`); const val=document.getElementById(`${this.kriId}CurrentValue`); if(alert){ card.className='kpi-card alert'; val.className='kpi-value danger'; } else { card.className='kpi-card'; val.className='kpi-value'; } } } else { chgEl.textContent='-'; txtEl.textContent='Need more data'; } }
+            updateCharts(){ const labels=this.getAllPeriods(); const colors=['#FF6B6B','#4ECDC4','#45B7D1','#F7D794','#96CEB4','#A3BFFA','#D4A4EB','#FFCC70']; const datasets=[]; let i=0; this.applications.forEach((arr,name)=>{ if(arr.length>0){ datasets.push({label:name,data:labels.map(p=>{const it=arr.find(d=>d.period===p); return it?it[this.metricKey]:0;}),backgroundColor:colors[i%colors.length],borderColor:colors[i%colors.length],borderWidth:1}); i++; } }); const tctx=document.getElementById(`${this.kriId}TrendChart`).getContext('2d'); this.charts.trend.data.labels=[]; this.charts.trend.data.datasets[0].data=[]; if(this.selectedApp&&this.applications.has(this.selectedApp)){ const data=this.applications.get(this.selectedApp); this.charts.trend.data.labels=data.map(d=>d.period); this.charts.trend.data.datasets[0].data=data.map(d=>d[this.metricKey]); this.charts.trend.data.datasets[0].label=`${this.selectedApp} ${this.metricLabel}`; } this.charts.trend.update(); const cctx=document.getElementById(`${this.kriId}ComparisonChart`).getContext('2d'); this.charts.comparison.data.labels=labels; this.charts.comparison.data.datasets=datasets; this.charts.comparison.update(); const mctx=document.getElementById(`${this.kriId}ComparisonChartMain`).getContext('2d'); this.charts.comparisonMain.data.labels=labels; this.charts.comparisonMain.data.datasets=datasets; this.charts.comparisonMain.update(); }
+            getAllPeriods(){ const s=new Set(); this.applications.forEach(arr=>arr.forEach(it=>s.add(it.period))); return Array.from(s).sort(); }
+            initCharts(){ const tctx=document.getElementById(`${this.kriId}TrendChart`).getContext('2d'); this.charts.trend=new Chart(tctx,{type:'line',data:{labels:[],datasets:[{label:this.metricLabel,data:[],borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.1)',borderWidth:3,fill:true,tension:0.4,pointRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}}); const cctx=document.getElementById(`${this.kriId}ComparisonChart`).getContext('2d'); this.charts.comparison=new Chart(cctx,{type:'bar',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}}); const mctx=document.getElementById(`${this.kriId}ComparisonChartMain`).getContext('2d'); this.charts.comparisonMain=new Chart(mctx,{type:'bar',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}}); }
+            showMessage(el,text,type){ el.innerHTML=`<div class="message message-${type}">${text}</div>`; setTimeout(()=>el.innerHTML='',3000); }
+        }
+
+        document.addEventListener('DOMContentLoaded', async ()=>{
+            const data=await loadKRIData();
+            dashboards={
+                kri2:new BaseDashboard(data,'kri2','percentage',95,true),
+                kri3:new BaseDashboard(data,'kri3','percentage',80,true),
+                kri4:new BaseDashboard(data,'kri4','count',1,false),
+                kri5:new BaseDashboard(data,'kri5','percentage',0,false),
+                kri6:new BaseDashboard(data,'kri6','percentage',10,false),
+                kri8:new ApplicationsKRIDashboard(data,'kri8','Days','value',120,true),
+                kri9:new BaseDashboard(data,'kri9','count',0,false),
+                kri10:new ApplicationsKRIDashboard(data,'kri10','Incidents','incidents',2,false),
+                kri12:new ApplicationsKRIDashboard(data,'kri12','Incidents','incidents',0,false),
+                kri13:new ApplicationsKRIDashboard(data,'kri13','Incidents','value',2,false),
+                kri15:new BaseDashboard(data,'kri15','percentage',0,false),
+                kri18:new BaseDashboard(data,'kri18','percentage',10,false),
+                kri19:new ApplicationsKRIDashboard(data,'kri19','Minutes','value',null,false),
+                kri20:new BaseDashboard(data,'kri20','count',0,false),
+                kri21:new BaseDashboard(data,'kri21','count',0,false),
+                kri22:new BaseDashboard(data,'kri22','percentage',70,true),
+                kri27:new BaseDashboard(data,'kri27','percentage',0,false),
+                kri28:new BaseDashboard(data,'kri28','percentage',10,false)
+            };
+            window.addEventListener('hashchange',()=>{ const hash=window.location.hash.replace('#',''); showDashboard(hash||'mainPage'); });
+            showDashboard(window.location.hash.replace('#','')||'mainPage');
+            updateDateTime(); setInterval(updateDateTime,60000);
+        });
+    </script>
+</body>
+</html>

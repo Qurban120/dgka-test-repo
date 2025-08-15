@@ -57,7 +57,6 @@ def init_db(drop: bool = False) -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 kri_id TEXT NOT NULL,
                 period TEXT NOT NULL,
-                date TEXT NOT NULL,
                 value REAL NOT NULL,
                 UNIQUE(kri_id, period)
             )
@@ -76,25 +75,24 @@ def init_db(drop: bool = False) -> None:
                 kri_id TEXT NOT NULL,
                 system_name TEXT NOT NULL,
                 period TEXT NOT NULL,
-                date TEXT NOT NULL,
                 value REAL NOT NULL,
                 UNIQUE(kri_id, system_name, period)
             )
         ''')
 
 
-def _insert_point(conn: sqlite3.Connection, kri_id: str, period: str, date: str, value: float) -> None:
+def _insert_point(conn: sqlite3.Connection, kri_id: str, period: str, value: float) -> None:
     conn.execute(
-        'INSERT INTO kri_points (kri_id, period, date, value) VALUES (?, ?, ?, ?)\n\t\tON CONFLICT(kri_id, period) DO UPDATE SET date=excluded.date, value=excluded.value',
-        (kri_id, period, date, value),
+        'INSERT INTO kri_points (kri_id, period, value) VALUES (?, ?, ?)\n        ON CONFLICT(kri_id, period) DO UPDATE SET value=excluded.value',
+        (kri_id, period, value),
     )
 
 
-def _insert_app_point(conn: sqlite3.Connection, kri_id: str, system_name: str, period: str, date: str, value: float) -> None:
+def _insert_app_point(conn: sqlite3.Connection, kri_id: str, system_name: str, period: str, value: float) -> None:
     conn.execute('INSERT OR IGNORE INTO kri_app_systems (kri_id, system_name) VALUES (?, ?)', (kri_id, system_name))
     conn.execute(
-        'INSERT INTO kri_app_points (kri_id, system_name, period, date, value) VALUES (?, ?, ?, ?, ?)\n\t\tON CONFLICT(kri_id, system_name, period) DO UPDATE SET date=excluded.date, value=excluded.value',
-        (kri_id, system_name, period, date, value),
+        'INSERT INTO kri_app_points (kri_id, system_name, period, value) VALUES (?, ?, ?, ?)\n        ON CONFLICT(kri_id, system_name, period) DO UPDATE SET value=excluded.value',
+        (kri_id, system_name, period, value),
     )
 
 
@@ -114,10 +112,10 @@ def seed_from_json(file_path: Optional[str] = None, clear_existing: bool = True)
                 apps = content.get('applications', {})
                 for system_name, items in apps.items():
                     for item in items:
-                        _insert_app_point(conn, kri_id, system_name, item['period'], item['date'], float(item.get('incidents') or item.get('value') or 0.0))
+                        _insert_app_point(conn, kri_id, system_name, item['period'], float(item.get('incidents') or item.get('value') or 0.0))
             else:
                 for item in content.get('data', []):
-                    _insert_point(conn, kri_id, item['period'], item['date'], float(item.get('percentage') or item.get('count') or 0.0))
+                    _insert_point(conn, kri_id, item['period'], float(item.get('percentage') or item.get('count') or 0.0))
 
 
 def add_system(kri_id: str, system_name: str) -> None:
@@ -125,77 +123,40 @@ def add_system(kri_id: str, system_name: str) -> None:
         conn.execute('INSERT OR IGNORE INTO kri_app_systems (kri_id, system_name) VALUES (?, ?)', (kri_id, system_name))
 
 
-def upsert_data_point(kri_id: str, period: str, date: str, value: float, system_name: Optional[str] = None) -> None:
+def upsert_data_point(kri_id: str, period: str, value: float, system_name: Optional[str] = None) -> None:
     with get_conn() as conn:
         if kri_id in APP_BASED_KRIS:
             if not system_name:
                 raise ValueError('systemName is required for applications-based KRI')
-            _insert_app_point(conn, kri_id, system_name, period, date, value)
+            _insert_app_point(conn, kri_id, system_name, period, value)
         else:
-            _insert_point(conn, kri_id, period, date, value)
+            _insert_point(conn, kri_id, period, value)
 
 
 def update_data_point(
     kri_id: str,
     period: str,
     value: Optional[float] = None,
-    date: Optional[str] = None,
     system_name: Optional[str] = None,
-    new_period: Optional[str] = None,
-    new_date: Optional[str] = None,
 ) -> int:
-    """Update an existing data point. Returns number of rows changed."""
     with get_conn() as conn:
         if kri_id in APP_BASED_KRIS:
             if not system_name:
                 raise ValueError('systemName is required for applications-based KRI')
-            # Fetch exists
             row = conn.execute('SELECT id FROM kri_app_points WHERE kri_id=? AND system_name=? AND period=?', (kri_id, system_name, period)).fetchone()
             if not row:
                 return 0
-            pid = row['id']
-            set_parts: List[str] = []
-            params: List[Any] = []
-            if value is not None:
-                set_parts.append('value=?')
-                params.append(value)
-            if date is not None:
-                set_parts.append('date=?')
-                params.append(date)
-            if new_period is not None:
-                set_parts.append('period=?')
-                params.append(new_period)
-            if new_date is not None:
-                set_parts.append('date=?')
-                params.append(new_date)
-            if not set_parts:
+            if value is None:
                 return 0
-            params.append(pid)
-            conn.execute(f'UPDATE kri_app_points SET {", ".join(set_parts)} WHERE id=?', params)
+            conn.execute('UPDATE kri_app_points SET value=? WHERE id=?', (value, row['id']))
             return 1
         else:
             row = conn.execute('SELECT id FROM kri_points WHERE kri_id=? AND period=?', (kri_id, period)).fetchone()
             if not row:
                 return 0
-            pid = row['id']
-            set_parts = []
-            params = []
-            if value is not None:
-                set_parts.append('value=?')
-                params.append(value)
-            if date is not None:
-                set_parts.append('date=?')
-                params.append(date)
-            if new_period is not None:
-                set_parts.append('period=?')
-                params.append(new_period)
-            if new_date is not None:
-                set_parts.append('date=?')
-                params.append(new_date)
-            if not set_parts:
+            if value is None:
                 return 0
-            params.append(pid)
-            conn.execute(f'UPDATE kri_points SET {", ".join(set_parts)} WHERE id=?', params)
+            conn.execute('UPDATE kri_points SET value=? WHERE id=?', (value, row['id']))
             return 1
 
 
@@ -222,23 +183,21 @@ def _collect_kri(conn: sqlite3.Connection, kri_id: str) -> Dict[str, Any]:
     field = VALUE_FIELD_MAP[kri_id]
     if kri_id in APP_BASED_KRIS:
         apps: Dict[str, List[Dict[str, Any]]] = {}
-        rows = conn.execute('SELECT system_name, period, date, value FROM kri_app_points WHERE kri_id=? ORDER BY date', (kri_id,)).fetchall()
+        rows = conn.execute('SELECT system_name, period, value FROM kri_app_points WHERE kri_id=? ORDER BY period', (kri_id,)).fetchall()
         for r in rows:
-            apps.setdefault(r['system_name'], []).append({'period': r['period'], field: r['value'], 'date': r['date']})
-        # Ensure empty systems appear
+            apps.setdefault(r['system_name'], []).append({'period': r['period'], field: r['value']})
         sys_rows = conn.execute('SELECT system_name FROM kri_app_systems WHERE kri_id=? ORDER BY system_name', (kri_id,)).fetchall()
         for s in sys_rows:
             apps.setdefault(s['system_name'], apps.get(s['system_name'], []))
         return {'applications': apps}
     else:
-        rows = conn.execute('SELECT period, date, value FROM kri_points WHERE kri_id=? ORDER BY date', (kri_id,)).fetchall()
-        return {'data': [{'period': r['period'], field: r['value'], 'date': r['date']} for r in rows]}
+        rows = conn.execute('SELECT period, value FROM kri_points WHERE kri_id=? ORDER BY period', (kri_id,)).fetchall()
+        return {'data': [{'period': r['period'], field: r['value']} for r in rows]}
 
 
 def fetch_all_data() -> Dict[str, Any]:
     with get_conn() as conn:
         result: Dict[str, Any] = {}
-        # Collect all KRIs that exist in tables
         kri_ids = set()
         for (kri_id,) in conn.execute('SELECT DISTINCT kri_id FROM kri_points'):
             kri_ids.add(kri_id)
@@ -246,7 +205,6 @@ def fetch_all_data() -> Dict[str, Any]:
             kri_ids.add(kri_id)
         for (kri_id,) in conn.execute('SELECT DISTINCT kri_id FROM kri_app_systems'):
             kri_ids.add(kri_id)
-        # Also include KRIs from VALUE_FIELD_MAP with no data yet
         kri_ids.update(VALUE_FIELD_MAP.keys())
         for kri_id in sorted(kri_ids):
             result[kri_id] = _collect_kri(conn, kri_id)

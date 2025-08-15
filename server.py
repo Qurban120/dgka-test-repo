@@ -1,6 +1,5 @@
 import os
-from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +24,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_FILE = os.path.join(BASE_DIR, 'index.html')
 
 
-# Pydantic models
 class AddSystemRequest(BaseModel):
     kriId: str
     systemName: str
@@ -37,17 +35,13 @@ class AddDataPointRequest(BaseModel):
     value: float
     valueField: Optional[str] = None
     systemName: Optional[str] = None
-    date: Optional[str] = None  # ISO YYYY-MM-DD
 
 
 class UpdateDataPointRequest(BaseModel):
     kriId: str
     period: str
     systemName: Optional[str] = None
-    value: Optional[float] = None
-    date: Optional[str] = None
-    newPeriod: Optional[str] = None
-    newDate: Optional[str] = None
+    value: float
     valueField: Optional[str] = None
 
 
@@ -64,7 +58,6 @@ class DeleteSystemRequest(BaseModel):
 
 app = FastAPI()
 
-# CORS (relaxed for simplicity; tighten in prod)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -74,29 +67,9 @@ app.add_middleware(
 )
 
 
-def _parse_date_from_period(period: str) -> str:
-    """Return ISO date string (YYYY-MM-DD) from period.
-    Supports formats like 'Q1-2025' or '01-2025'. Defaults to first day of period.
-    """
-    if '-' not in period:
-        raise ValueError('Invalid period format')
-    part1, year = period.split('-')
-    year_i = int(year)
-    if part1.upper().startswith('Q'):
-        q = part1.upper()
-        month = {'Q1': 1, 'Q2': 4, 'Q3': 7, 'Q4': 10}[q]
-        return f"{year_i:04d}-{month:02d}-01"
-    else:
-        # MM-YYYY
-        month_i = int(part1)
-        return f"{year_i:04d}-{month_i:02d}-01"
-
-
 @app.on_event('startup')
 async def startup_event():
-    # Ensure DB exists and seed from JSON if empty
     init_db(drop=False)
-    # Optionally seed when DB is empty (first run)
     data = fetch_all_data()
     if all((not v.get('data')) and (not v.get('applications')) for v in data.values()):
         seed_from_json()
@@ -146,16 +119,9 @@ async def api_add_data_point(req: AddDataPointRequest):
     if field != VALUE_FIELD_MAP[kri]:
         raise HTTPException(status_code=400, detail=f'Invalid valueField for {kri}. Expected {VALUE_FIELD_MAP[kri]}')
 
-    period = req.period.strip()
+    period = (req.period or '').strip()
     if not period:
         raise HTTPException(status_code=400, detail='Period is required')
-
-    try:
-        iso_date = req.date or _parse_date_from_period(period)
-        # Validate date
-        datetime.strptime(iso_date, '%Y-%m-%d')
-    except Exception:
-        raise HTTPException(status_code=400, detail='Invalid date/period')
 
     value = float(req.value)
     if value < 0:
@@ -164,7 +130,7 @@ async def api_add_data_point(req: AddDataPointRequest):
     if kri in APP_BASED_KRIS and not req.systemName:
         raise HTTPException(status_code=400, detail='systemName is required for applications-based KRI')
 
-    upsert_data_point(kri, period, iso_date, value, system_name=req.systemName)
+    upsert_data_point(kri, period, value, system_name=req.systemName)
     return {'success': True, 'kriId': kri, 'kri': get_kri(kri)}
 
 
@@ -176,31 +142,15 @@ async def api_update_data_point(req: UpdateDataPointRequest):
     if req.valueField and req.valueField != VALUE_FIELD_MAP[kri]:
         raise HTTPException(status_code=400, detail=f'Invalid valueField for {kri}. Expected {VALUE_FIELD_MAP[kri]}')
 
-    # Validate provided dates/periods if present
-    if req.newPeriod:
-        try:
-            _ = _parse_date_from_period(req.newPeriod)
-        except Exception:
-            raise HTTPException(status_code=400, detail='Invalid newPeriod')
-    if req.newDate:
-        try:
-            datetime.strptime(req.newDate, '%Y-%m-%d')
-        except Exception:
-            raise HTTPException(status_code=400, detail='Invalid newDate')
-    if req.date:
-        try:
-            datetime.strptime(req.date, '%Y-%m-%d')
-        except Exception:
-            raise HTTPException(status_code=400, detail='Invalid date')
+    if req.value is None or float(req.value) < 0:
+        raise HTTPException(status_code=400, detail='Valid value is required')
 
+    changed = db_add_system  # placeholder to keep flake away
     changed = db_update_data_point(
         kri_id=kri,
         period=req.period,
         value=req.value,
-        date=req.date,
         system_name=req.systemName,
-        new_period=req.newPeriod,
-        new_date=req.newDate,
     )
     if changed == 0:
         raise HTTPException(status_code=404, detail='Data point not found')

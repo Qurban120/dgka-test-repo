@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RHI Dashboards</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --light-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #e1e5fe;
+            --text: #333;
+            --text-light: #666;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --gradient-bg: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0; padding: 0; background: var(--light-bg); color: var(--text);
+            background-color: rgb(195, 207, 219);
+            min-height: 100vh; transition: all 0.3s ease;
+        }
+
+        .container { max-width: 100%; margin: 0 auto; position: relative; width: 100%; padding: 20px; }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 20px; justify-content: center; }
+
+        .header { grid-column: 1 / -1; text-align: center; padding: 20px; background: var(--gradient-bg); color: white; border-radius: 12px; margin-bottom: 20px; }
+
+        .dashboard-card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; text-align: center; transition: transform 0.3s ease; height: 100%; display: flex; flex-direction: column; justify-content: space-between; min-height: 350px; min-width: 0; }
+        .dashboard-card:hover { transform: translateY(-5px); }
+        .dashboard-card h2 { margin: 0 0 10px 0; font-size: 22px; color: var(--primary); }
+        .dashboard-card p { margin: 0 0 10px 0; font-size: 14px; color: var(--text-light); line-height: 1.4; }
+        .dashboard-card .threshold { margin-bottom: 10px; font-size: 13px; color: var(--text); font-weight: 600; }
+        .chart-container { position: relative; height: 180px; margin-top: 10px; flex-grow: 1; min-width: 0; }
+        .chart-container canvas { width: 100% !important; height: 100% !important; display: block; }
+
+        .btn-view { padding: 10px 20px; background: var(--gradient-bg); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.2s; margin-top: auto; }
+        .btn-view:hover { transform: translateY(-2px); }
+
+        .dashboard { display: none; width: 100%; min-height: 100vh; padding: 20px; background: var(--light-bg); }
+
+        .back-button { position: absolute; top: 20px; left: 70px; padding: 10px 20px; background: white; color: var(--primary); border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow); display: flex; align-items: center; }
+        .back-button::before { content: '←'; margin-right: 8px; }
+        .back-button:hover { background: var(--primary); color: white; transform: translateY(-2px); }
+
+        .data-status { position: fixed; top: 20px; right: 20px; padding: 10px 15px; border-radius: 6px; font-size: 14px; font-weight: 600; z-index: 1000; opacity: 0.9; }
+        .data-status.success { background: var(--success); color: white; }
+        .data-status.error { background: var(--danger); color: white; }
+
+        /* Sidebar */
+        .sidebar-toggle { position: absolute; top: 20px; left: 20px; z-index: 1200; transition: left .25s ease; }
+        .sidebar-toggle button { width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; color: white; font-size: 20px; font-weight: 800; background: rgb(91, 12, 194); box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; transition: transform .2s ease; }
+        .sidebar-toggle button:hover { transform: translateY(-2px); }
+        .sidebar-toggle.shifted { left: 280px; }
+        .side-drawer { position: fixed; top: 0; left: 0; height: 100%; width: 260px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.15); transform: translateX(-100%); transition: transform .25s ease; z-index: 1150; display: flex; flex-direction: column; }
+        .side-drawer.open { transform: translateX(0); }
+        .side-drawer .drawer-header { background: var(--gradient-bg); color: #fff; padding: 18px 16px; font-weight: 800; letter-spacing: .5px; }
+        .side-drawer .drawer-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .side-drawer .drawer-link { padding: 12px 14px; border-radius: 8px; border: 2px solid var(--border); background: #f8f9ff; font-weight: 700; color: var(--primary); cursor: pointer; text-align: left; }
+        .side-drawer .drawer-link.active { border-color: var(--primary); background: #eef0ff; }
+        .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.25); backdrop-filter: blur(1px); z-index: 1100; display: none; }
+        .drawer-backdrop.show { display: block; }
+
+        /* Sections */
+        .dashboard .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden; }
+        .dashboard .card .header { background: var(--gradient-bg); color: white; padding: 32px; text-align: center; }
+        .dashboard .card .header h1 { margin: 0 0 8px 0; font-size: 28px; font-weight: 700; }
+        .dashboard .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; padding: 24px; }
+        .dashboard .kpi-cards { display: grid; gap: 16px; }
+        .dashboard .kpi-card { padding: 20px; background: linear-gradient(135deg, #f8f9ff, #e8eaff); border: 2px solid var(--border); border-radius: 8px; text-align: center; }
+        .dashboard .kpi-value { font-size: 32px; font-weight: 800; margin-bottom: 8px; color: var(--primary); }
+        .dashboard .kpi-label { font-size: 14px; color: var(--text-light); margin-bottom: 12px; }
+        .dashboard .section-title { margin: 0 0 24px 0; padding: 0 24px; font-size: 20px; font-weight: 700; }
+
+        .forms-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; padding: 24px; }
+        .form-section { padding: 24px; background: var(--light-bg); border-radius: 8px; }
+        .form-section h3 { margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: var(--primary); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 6px; font-size: 16px; transition: border-color 0.3s; }
+        .btn { width: 100%; padding: 12px 20px; background: var(--gradient-bg); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-success { background: linear-gradient(135deg, var(--success), #45a049); }
+        .btn-danger { background: linear-gradient(135deg, var(--danger), #d32f2f); }
+
+        @media (max-width: 768px) { .dashboard .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-toggle">
+        <button id="drawerToggle" aria-label="Open navigation">&lt;</button>
+    </div>
+    <div id="drawerBackdrop" class="drawer-backdrop"></div>
+    <aside id="sideDrawer" class="side-drawer" aria-hidden="true">
+        <div class="drawer-header">Dashboards</div>
+        <div class="drawer-list">
+            <button id="navKRI" class="drawer-link">KRI</button>
+            <button id="navRHI" class="drawer-link active">RHI</button>
+            <button id="navMITRE" class="drawer-link">MITRE</button>
+        </div>
+    </aside>
+
+    <div id="dataStatus" class="data-status" style="display: none;"></div>
+
+    <div class="container" id="mainPage">
+        <div class="header">
+            <h1>RHI Dashboards</h1>
+        </div>
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h2>RHI96</h2>
+                <p>Internal cyber risk - of unprevented insider cyber incidents</p>
+                <div class="threshold">Monthly, yearly total</div>
+                <div class="chart-container"><canvas id="rhi96ComparisonChartMain"></canvas></div>
+                <button class="btn-view" onclick="navigateTo('rhi96')">View Details</button>
+            </div>
+            <div class="dashboard-card">
+                <h2>RHI97</h2>
+                <p>Internal cyber risk - incidents with critical/extreme business impact</p>
+                <div class="threshold">Monthly, yearly total</div>
+                <div class="chart-container"><canvas id="rhi97ComparisonChartMain"></canvas></div>
+                <button class="btn-view" onclick="navigateTo('rhi97')">View Details</button>
+            </div>
+            <div class="dashboard-card">
+                <h2>RHI98</h2>
+                <p>Internal cyber risk - unauthorized uses / total employees</p>
+                <div class="threshold">Monthly, yearly total</div>
+                <div class="chart-container"><canvas id="rhi98ComparisonChartMain"></canvas></div>
+                <button class="btn-view" onclick="navigateTo('rhi98')">View Details</button>
+            </div>
+            <div class="dashboard-card">
+                <h2>RHI102</h2>
+                <p>Mean time to remove user access from Active Directory (hours)</p>
+                <div class="threshold">Monthly (hours)</div>
+                <div class="chart-container"><canvas id="rhi102ComparisonChartMain"></canvas></div>
+                <button class="btn-view" onclick="navigateTo('rhi102')">View Details</button>
+            </div>
+            <div class="dashboard-card">
+                <h2>RHI103</h2>
+                <p>Mean time to remove user access from non-SSO apps (hours)</p>
+                <div class="threshold">Monthly (hours)</div>
+                <div class="chart-container"><canvas id="rhi103ComparisonChartMain"></canvas></div>
+                <button class="btn-view" onclick="navigateTo('rhi103')">View Details</button>
+            </div>
+            <div class="dashboard-card">
+                <h2>RHI104</h2>
+                <p>Maximum time to remove privileged user access account (hours)</p>
+                <div class="threshold">Monthly (hours)</div>
+                <div class="chart-container"><canvas id="rhi104ComparisonChartMain"></canvas></div>
+                <button class="btn-view" onclick="navigateTo('rhi104')">View Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail dashboards -->
+    <div class="container dashboard" id="rhi96Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>RHI96: Unprevented insider cyber incidents</h1></div></div>
+        <div class="card">
+            <div class="grid">
+                <div>
+                    <div class="kpi-cards">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="rhi96CurrentValue">-</div>
+                            <div class="kpi-label">Latest Month</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="rhi96YearTotal">-</div>
+                            <div class="kpi-label">Yearly Total</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rhi96TrendChart"></canvas></div>
+            </div>
+        </div>
+        <div class="card">
+            <h2 class="section-title">Month Comparison</h2>
+            <div class="chart-container"><canvas id="rhi96ComparisonChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="forms-grid">
+                <div class="form-section">
+                    <h3>Add Data Point</h3>
+                    <form id="rhi96DataForm">
+                        <div class="form-group">
+                            <label>Period (MM-YYYY):</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <select id="rhi96Month" required>
+                                    <option value="01">January</option>
+                                    <option value="02">February</option>
+                                    <option value="03">March</option>
+                                    <option value="04">April</option>
+                                    <option value="05">May</option>
+                                    <option value="06">June</option>
+                                    <option value="07">July</option>
+                                    <option value="08">August</option>
+                                    <option value="09">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                                <select id="rhi96Year" required>
+                                    <option value="2024" selected>2024</option>
+                                    <option value="2025">2025</option>
+                                    <option value="2026">2026</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Value</label>
+                            <input type="number" min="0" step="1" id="rhi96Value" required>
+                        </div>
+                        <button type="submit" class="btn">Add Data Point</button>
+                    </form>
+                    <div id="rhi96DataMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Update Data Point</h3>
+                    <form id="rhi96UpdateForm">
+                        <div class="form-group">
+                            <label>Period (MM-YYYY)</label>
+                            <input type="text" id="rhi96UpdatePeriod" placeholder="MM-YYYY" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Value</label>
+                            <input type="number" min="0" step="1" id="rhi96UpdateValue" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                    <div id="rhi96UpdateMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Delete Data Point</h3>
+                    <form id="rhi96DeleteForm">
+                        <div class="form-group">
+                            <label>Period</label>
+                            <select id="rhi96DeletePeriod" required><option value="">Select...</option></select>
+                        </div>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <div id="rhi96DeleteMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repeat blocks for other RHIs -->
+    <div class="container dashboard" id="rhi97Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>RHI97: Insider incidents with critical/extreme impact</h1></div></div>
+        <div class="card">
+            <div class="grid">
+                <div>
+                    <div class="kpi-cards">
+                        <div class="kpi-card"><div class="kpi-value" id="rhi97CurrentValue">-</div><div class="kpi-label">Latest Month</div></div>
+                        <div class="kpi-card"><div class="kpi-value" id="rhi97YearTotal">-</div><div class="kpi-label">Yearly Total</div></div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rhi97TrendChart"></canvas></div>
+            </div>
+        </div>
+        <div class="card"><h2 class="section-title">Month Comparison</h2><div class="chart-container"><canvas id="rhi97ComparisonChart"></canvas></div></div>
+        <div class="card">
+            <div class="forms-grid">
+                <div class="form-section">
+                    <h3>Add Data Point</h3>
+                    <form id="rhi97DataForm">
+                        <div class="form-group"><label>Period</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <select id="rhi97Month" required>
+                                    <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                </select>
+                                <select id="rhi97Year" required><option value="2024" selected>2024</option><option value="2025">2025</option><option value="2026">2026</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Value</label><input type="number" min="0" step="1" id="rhi97Value" required></div>
+                        <button type="submit" class="btn">Add Data Point</button>
+                    </form>
+                    <div id="rhi97DataMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Update Data Point</h3>
+                    <form id="rhi97UpdateForm">
+                        <div class="form-group"><label>Period</label><input type="text" id="rhi97UpdatePeriod" placeholder="MM-YYYY" required></div>
+                        <div class="form-group"><label>New Value</label><input type="number" min="0" step="1" id="rhi97UpdateValue" required></div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                    <div id="rhi97UpdateMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Delete Data Point</h3>
+                    <form id="rhi97DeleteForm">
+                        <div class="form-group"><label>Period</label><select id="rhi97DeletePeriod" required><option value="">Select...</option></select></div>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <div id="rhi97DeleteMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container dashboard" id="rhi98Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>RHI98: Unauthorized uses / total employees</h1></div></div>
+        <div class="card">
+            <div class="grid">
+                <div>
+                    <div class="kpi-cards">
+                        <div class="kpi-card"><div class="kpi-value" id="rhi98CurrentValue">-</div><div class="kpi-label">Latest Month</div></div>
+                        <div class="kpi-card"><div class="kpi-value" id="rhi98YearTotal">-</div><div class="kpi-label">Yearly Total</div></div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rhi98TrendChart"></canvas></div>
+            </div>
+        </div>
+        <div class="card"><h2 class="section-title">Month Comparison</h2><div class="chart-container"><canvas id="rhi98ComparisonChart"></canvas></div></div>
+        <div class="card">
+            <div class="forms-grid">
+                <div class="form-section">
+                    <h3>Add Data Point</h3>
+                    <form id="rhi98DataForm">
+                        <div class="form-group"><label>Period</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <select id="rhi98Month" required>
+                                    <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                </select>
+                                <select id="rhi98Year" required><option value="2024" selected>2024</option><option value="2025">2025</option><option value="2026">2026</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Value</label><input type="number" min="0" step="1" id="rhi98Value" required></div>
+                        <button type="submit" class="btn">Add Data Point</button>
+                    </form>
+                    <div id="rhi98DataMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Update Data Point</h3>
+                    <form id="rhi98UpdateForm">
+                        <div class="form-group"><label>Period</label><input type="text" id="rhi98UpdatePeriod" placeholder="MM-YYYY" required></div>
+                        <div class="form-group"><label>New Value</label><input type="number" min="0" step="1" id="rhi98UpdateValue" required></div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                    <div id="rhi98UpdateMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Delete Data Point</h3>
+                    <form id="rhi98DeleteForm">
+                        <div class="form-group"><label>Period</label><select id="rhi98DeletePeriod" required><option value="">Select...</option></select></div>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <div id="rhi98DeleteMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container dashboard" id="rhi102Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>RHI102: Mean time to remove AD access (hours)</h1></div></div>
+        <div class="card">
+            <div class="grid">
+                <div>
+                    <div class="kpi-cards">
+                        <div class="kpi-card"><div class="kpi-value" id="rhi102CurrentValue">-</div><div class="kpi-label">Latest Month</div></div>
+                        <div class="kpi-card"><div class="kpi-value" id="rhi102YearTotal">-</div><div class="kpi-label">Yearly Total</div></div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rhi102TrendChart"></canvas></div>
+            </div>
+        </div>
+        <div class="card"><h2 class="section-title">Month Comparison</h2><div class="chart-container"><canvas id="rhi102ComparisonChart"></canvas></div></div>
+        <div class="card">
+            <div class="forms-grid">
+                <div class="form-section">
+                    <h3>Add Data Point</h3>
+                    <form id="rhi102DataForm">
+                        <div class="form-group"><label>Period</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <select id="rhi102Month" required>
+                                    <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                </select>
+                                <select id="rhi102Year" required><option value="2024" selected>2024</option><option value="2025">2025</option><option value="2026">2026</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Hours</label><input type="number" min="0" step="0.01" id="rhi102Value" required></div>
+                        <button type="submit" class="btn">Add Data Point</button>
+                    </form>
+                    <div id="rhi102DataMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Update Data Point</h3>
+                    <form id="rhi102UpdateForm">
+                        <div class="form-group"><label>Period</label><input type="text" id="rhi102UpdatePeriod" placeholder="MM-YYYY" required></div>
+                        <div class="form-group"><label>New Hours</label><input type="number" min="0" step="0.01" id="rhi102UpdateValue" required></div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                    <div id="rhi102UpdateMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Delete Data Point</h3>
+                    <form id="rhi102DeleteForm">
+                        <div class="form-group"><label>Period</label><select id="rhi102DeletePeriod" required><option value="">Select...</option></select></div>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <div id="rhi102DeleteMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container dashboard" id="rhi103Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>RHI103: Mean time to remove non-SSO access (hours)</h1></div></div>
+        <div class="card">
+            <div class="grid">
+                <div>
+                    <div class="kpi-cards">
+                        <div class="kpi-card"><div class="kpi-value" id="rhi103CurrentValue">-</div><div class="kpi-label">Latest Month</div></div>
+                        <div class="kpi-card"><div class="kpi-value" id="rhi103YearTotal">-</div><div class="kpi-label">Yearly Total</div></div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rhi103TrendChart"></canvas></div>
+            </div>
+        </div>
+        <div class="card"><h2 class="section-title">Month Comparison</h2><div class="chart-container"><canvas id="rhi103ComparisonChart"></canvas></div></div>
+        <div class="card">
+            <div class="forms-grid">
+                <div class="form-section">
+                    <h3>Add Data Point</h3>
+                    <form id="rhi103DataForm">
+                        <div class="form-group"><label>Period</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <select id="rhi103Month" required>
+                                    <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                </select>
+                                <select id="rhi103Year" required><option value="2024" selected>2024</option><option value="2025">2025</option><option value="2026">2026</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Hours</label><input type="number" min="0" step="0.01" id="rhi103Value" required></div>
+                        <button type="submit" class="btn">Add Data Point</button>
+                    </form>
+                    <div id="rhi103DataMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Update Data Point</h3>
+                    <form id="rhi103UpdateForm">
+                        <div class="form-group"><label>Period</label><input type="text" id="rhi103UpdatePeriod" placeholder="MM-YYYY" required></div>
+                        <div class="form-group"><label>New Hours</label><input type="number" min="0" step="0.01" id="rhi103UpdateValue" required></div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                    <div id="rhi103UpdateMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Delete Data Point</h3>
+                    <form id="rhi103DeleteForm">
+                        <div class="form-group"><label>Period</label><select id="rhi103DeletePeriod" required><option value="">Select...</option></select></div>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <div id="rhi103DeleteMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container dashboard" id="rhi104Dashboard">
+        <button class="back-button" onclick="navigateBack()">Back</button>
+        <div class="card"><div class="header"><h1>RHI104: Maximum time to remove privileged account (hours)</h1></div></div>
+        <div class="card">
+            <div class="grid">
+                <div>
+                    <div class="kpi-cards">
+                        <div class="kpi-card"><div class="kpi-value" id="rhi104CurrentValue">-</div><div class="kpi-label">Latest Month</div></div>
+                        <div class="kpi-card"><div class="kpi-value" id="rhi104YearTotal">-</div><div class="kpi-label">Yearly Total</div></div>
+                    </div>
+                </div>
+                <div class="chart-container"><canvas id="rhi104TrendChart"></canvas></div>
+            </div>
+        </div>
+        <div class="card"><h2 class="section-title">Month Comparison</h2><div class="chart-container"><canvas id="rhi104ComparisonChart"></canvas></div></div>
+        <div class="card">
+            <div class="forms-grid">
+                <div class="form-section">
+                    <h3>Add Data Point</h3>
+                    <form id="rhi104DataForm">
+                        <div class="form-group"><label>Period</label>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <select id="rhi104Month" required>
+                                    <option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                </select>
+                                <select id="rhi104Year" required><option value="2024" selected>2024</option><option value="2025">2025</option><option value="2026">2026</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Hours</label><input type="number" min="0" step="0.01" id="rhi104Value" required></div>
+                        <button type="submit" class="btn">Add Data Point</button>
+                    </form>
+                    <div id="rhi104DataMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Update Data Point</h3>
+                    <form id="rhi104UpdateForm">
+                        <div class="form-group"><label>Period</label><input type="text" id="rhi104UpdatePeriod" placeholder="MM-YYYY" required></div>
+                        <div class="form-group"><label>New Hours</label><input type="number" min="0" step="0.01" id="rhi104UpdateValue" required></div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                    <div id="rhi104UpdateMessage"></div>
+                </div>
+                <div class="form-section">
+                    <h3>Delete Data Point</h3>
+                    <form id="rhi104DeleteForm">
+                        <div class="form-group"><label>Period</label><select id="rhi104DeletePeriod" required><option value="">Select...</option></select></div>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                    <div id="rhi104DeleteMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Drawer logic and navigation
+        const drawer = document.getElementById('sideDrawer');
+        const drawerBackdrop = document.getElementById('drawerBackdrop');
+        const drawerToggle = document.getElementById('drawerToggle');
+        function openDrawer(){ drawer.classList.add('open'); drawerBackdrop.classList.add('show'); document.querySelector('.sidebar-toggle').classList.add('shifted'); drawerToggle.textContent = '>'; }
+        function closeDrawer(){ drawer.classList.remove('open'); drawerBackdrop.classList.remove('show'); document.querySelector('.sidebar-toggle').classList.remove('shifted'); drawerToggle.textContent = '<'; }
+        drawerToggle.addEventListener('click', ()=> drawer.classList.contains('open') ? closeDrawer() : openDrawer());
+        drawerBackdrop.addEventListener('click', closeDrawer);
+        const navKRI = document.getElementById('navKRI');
+        const navRHI = document.getElementById('navRHI');
+        const navMITRE = document.getElementById('navMITRE');
+        function setActiveNav(btn){ [navKRI, navRHI, navMITRE].forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+        navKRI.addEventListener('click', ()=>{ setActiveNav(navKRI); window.location.href = '/kri'; });
+        navRHI.addEventListener('click', ()=>{ setActiveNav(navRHI); closeDrawer(); });
+        navMITRE.addEventListener('click', ()=>{ setActiveNav(navMITRE); alert('MITRE - Coming soon'); closeDrawer(); });
+
+        // Utilities
+        function showDataStatus(message, type='success'){ const el = document.getElementById('dataStatus'); el.textContent = message; el.className = `data-status ${type}`; el.style.display='block'; setTimeout(()=> el.style.display='none', 2500); }
+        function navigateTo(id){ window.location.hash = `#${id}Dashboard`; showDashboard(id); }
+        function navigateBack(){ window.location.hash = '#mainPage'; showDashboard('main'); }
+        function showDashboard(id){
+            const pages = ['mainPage','rhi96Dashboard','rhi97Dashboard','rhi98Dashboard','rhi102Dashboard','rhi103Dashboard','rhi104Dashboard'];
+            pages.forEach(p=>{ const el = document.getElementById(p); if(el) el.style.display = (p === id || (id==='main' && p==='mainPage')) ? 'block' : 'none'; });
+            const isMain = (id==='main'||id==='mainPage'||!id); const toggleEl = document.querySelector('.sidebar-toggle'); if (toggleEl) toggleEl.style.display = isMain ? 'block':'none'; if(!isMain) closeDrawer();
+        }
+
+        // Data
+        let rhiData = {};
+        async function loadRHIData(){ const res = await fetch('/api/rhi-data'); if(!res.ok) throw new Error('Failed to load RHI'); rhiData = await res.json(); return rhiData; }
+
+        class RHIMetric {
+            constructor(rhiId){ this.rhiId = rhiId; this.data = []; this.charts = { trend: null, comparison: null, comparisonMain: null }; this.initCharts(); this.bindForms(); }
+            mount(){ this.data = (rhiData[this.rhiId]?.data || []).slice(); this.updateDeleteList(); this.updateUI(); }
+            bindForms(){ const id=this.rhiId;
+                const addForm = document.getElementById(`${id}DataForm`); if(addForm) addForm.addEventListener('submit', (e)=>{ e.preventDefault(); this.addPoint(); });
+                const updForm = document.getElementById(`${id}UpdateForm`); if(updForm) updForm.addEventListener('submit', (e)=>{ e.preventDefault(); this.updatePoint(); });
+                const delForm = document.getElementById(`${id}DeleteForm`); if(delForm) delForm.addEventListener('submit', (e)=>{ e.preventDefault(); this.deletePoint(); });
+            }
+            initCharts(){ const id=this.rhiId;
+                const t = document.getElementById(`${id}TrendChart`).getContext('2d'); this.charts.trend = new Chart(t,{ type:'line', data:{labels:[], datasets:[{label:'Value', data:[], borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.1)', borderWidth:3, fill:true, tension:0.4, pointRadius:6}]}, options:{responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}} });
+                const c = document.getElementById(`${id}ComparisonChart`).getContext('2d'); this.charts.comparison = new Chart(c,{ type:'bar', data:{labels:[], datasets:[{label:'Value', data:[], backgroundColor:'#A3BFFA', borderColor:'#667eea', borderWidth:1}]}, options:{responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}, plugins:{legend:{display:false}}} });
+                const cm = document.getElementById(`${id}ComparisonChartMain`).getContext('2d'); this.charts.comparisonMain = new Chart(cm,{ type:'bar', data:{labels:[], datasets:[{label:'Value', data:[], backgroundColor:'#A3BFFA', borderColor:'#667eea', borderWidth:1}]}, options:{responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}, plugins:{legend:{display:false}}} });
+            }
+            updateDeleteList(){ const sel = document.getElementById(`${this.rhiId}DeletePeriod`); if(!sel) return; sel.innerHTML = '<option value="">Select...</option>'; this.data.forEach(d=>{ const o=document.createElement('option'); o.value=d.period; o.textContent=this.formatPeriod(d.period); sel.appendChild(o); }); }
+            formatPeriod(p){ const [m,y]=p.split('-'); const names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${names[parseInt(m)-1]} ${y}`; }
+            updateUI(){ const latest = this.data.length>0 ? this.data[this.data.length-1] : null; const currentEl = document.getElementById(`${this.rhiId}CurrentValue`); if(currentEl) currentEl.textContent = latest ? latest.value : '-';
+                const year = this.data.length>0 ? this.data[this.data.length-1].period.split('-')[1] : null; const total = this.data.filter(d=> d.period.endsWith(year||'')).reduce((s,d)=> s + Number(d.value||0), 0); const totalEl = document.getElementById(`${this.rhiId}YearTotal`); if(totalEl) totalEl.textContent = year ? total : '-';
+                this.updateCharts(); }
+            updateCharts(){ const labels = this.data.map(d=> this.formatPeriod(d.period)); const values = this.data.map(d=> d.value);
+                this.charts.trend.data.labels = labels; this.charts.trend.data.datasets[0].data = values; this.charts.trend.update();
+                this.charts.comparison.data.labels = labels; this.charts.comparison.data.datasets[0].data = values; this.charts.comparison.update();
+                this.charts.comparisonMain.data.labels = labels; this.charts.comparisonMain.data.datasets[0].data = values; this.charts.comparisonMain.update(); }
+            async addPoint(){ const m=document.getElementById(`${this.rhiId}Month`).value; const y=document.getElementById(`${this.rhiId}Year`).value; const v=parseFloat(document.getElementById(`${this.rhiId}Value`).value); const period=`${m}-${y}`; const msg = document.getElementById(`${this.rhiId}DataMessage`);
+                if(isNaN(v)||v<0){ msg.textContent='Invalid value'; return; }
+                const res = await fetch('/api/rhi/add-data-point', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rhiId: this.rhiId, period, value: v }) });
+                if(!res.ok){ msg.textContent='Save failed'; showDataStatus('Save failed','error'); return; }
+                const payload = await res.json(); rhiData[this.rhiId] = payload.rhi; this.data = (payload.rhi.data||[]).slice(); this.updateDeleteList(); this.updateUI(); msg.textContent='Saved'; showDataStatus('Saved','success'); document.getElementById(`${this.rhiId}Value`).value=''; }
+            async updatePoint(){ const period=document.getElementById(`${this.rhiId}UpdatePeriod`).value.trim(); const v=parseFloat(document.getElementById(`${this.rhiId}UpdateValue`).value); const msg=document.getElementById(`${this.rhiId}UpdateMessage`);
+                const res = await fetch('/api/rhi/update-data-point', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rhiId: this.rhiId, period, value: v }) });
+                if(!res.ok){ msg.textContent='Update failed'; showDataStatus('Update failed','error'); return; }
+                const payload = await res.json(); rhiData[this.rhiId] = payload.rhi; this.data = (payload.rhi.data||[]).slice(); this.updateDeleteList(); this.updateUI(); msg.textContent='Updated'; showDataStatus('Updated','success'); }
+            async deletePoint(){ const period=document.getElementById(`${this.rhiId}DeletePeriod`).value; const msg=document.getElementById(`${this.rhiId}DeleteMessage`);
+                const res = await fetch('/api/rhi/delete-data-point', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rhiId: this.rhiId, period }) });
+                if(!res.ok){ msg.textContent='Delete failed'; showDataStatus('Delete failed','error'); return; }
+                const payload = await res.json(); rhiData[this.rhiId] = payload.rhi; this.data = (payload.rhi.data||[]).slice(); this.updateDeleteList(); this.updateUI(); msg.textContent='Deleted'; showDataStatus('Deleted','success'); }
+        }
+
+        const rhiDashboards = {
+            rhi96: new RHIMetric('rhi96'),
+            rhi97: new RHIMetric('rhi97'),
+            rhi98: new RHIMetric('rhi98'),
+            rhi102: new RHIMetric('rhi102'),
+            rhi103: new RHIMetric('rhi103'),
+            rhi104: new RHIMetric('rhi104'),
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await loadRHIData(); Object.values(rhiDashboards).forEach(d=> d.mount()); } catch(e){ showDataStatus('Failed to load RHI','error'); }
+            window.addEventListener('hashchange', ()=>{ const hash=window.location.hash.replace('#',''); showDashboard(hash||'mainPage'); });
+            showDashboard(window.location.hash.replace('#','')||'mainPage');
+        });
+    </script>
+</body>
+
+</html>
+

@@ -53,18 +53,9 @@ def _insert_point(conn: sqlite3.Connection, rhi_id: str, period: str, value: flo
     )
 
 
-def seed_initial_data(clear_existing: bool = True) -> None:
-    """Seed initial RHI data directly into the database (no JSON usage)."""
-    with get_conn() as conn:
-        if clear_existing:
-            conn.execute('DELETE FROM rhi_points')
-
-        def months_2024():
-            return [f"{m:02d}-2024" for m in range(1, 13)]
-
-        for rhi_id in ['rhi96', 'rhi97', 'rhi98', 'rhi102', 'rhi103', 'rhi104']:
-            for period in months_2024():
-                _insert_point(conn, rhi_id, period, 0.0)
+def seed_initial_data(*args, **kwargs):
+    """Deprecated: no runtime seeding. Keep for backward compat if imported."""
+    return None
 
 
 def upsert_data_point(rhi_id: str, period: str, value: float) -> None:

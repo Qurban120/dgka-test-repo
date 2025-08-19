@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from db import (
     init_db as init_kri_db,
-    seed_initial_data as seed_kri,
     fetch_all_data as fetch_all_kri,
     get_kri,
     add_system as db_add_system,
@@ -22,7 +21,6 @@ from db import (
 
 from rhi_db import (
     init_db as init_rhi_db,
-    seed_initial_data as seed_rhi,
     fetch_all_data as fetch_all_rhi,
     get_rhi,
     upsert_data_point as rhi_upsert_data_point,
@@ -101,18 +99,9 @@ app.add_middleware(
 
 @app.on_event('startup')
 async def startup_event():
-    # Ensure DBs exist and seed initial data if empty
+    # Ensure DBs exist (tables only). No seeding here; databases should be pre-populated.
     init_kri_db(drop=False)
     init_rhi_db(drop=False)
-
-    # Seed when DBs are empty
-    kri_data = fetch_all_kri()
-    if all((not v.get('data')) and (not v.get('applications')) for v in kri_data.values()):
-        seed_kri()
-
-    rhi_data = fetch_all_rhi()
-    if all((not v.get('data')) for v in rhi_data.values()):
-        seed_rhi()
 
 
 @app.get('/')

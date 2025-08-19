@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from db import (
     init_db as init_kri_db,
-    seed_from_json as seed_kri,
+    seed_initial_data as seed_kri,
     fetch_all_data as fetch_all_kri,
     get_kri,
     add_system as db_add_system,
@@ -22,7 +22,7 @@ from db import (
 
 from rhi_db import (
     init_db as init_rhi_db,
-    seed_from_json as seed_rhi,
+    seed_initial_data as seed_rhi,
     fetch_all_data as fetch_all_rhi,
     get_rhi,
     upsert_data_point as rhi_upsert_data_point,
@@ -101,7 +101,7 @@ app.add_middleware(
 
 @app.on_event('startup')
 async def startup_event():
-    # Ensure DBs exist and seed from JSON if empty
+    # Ensure DBs exist and seed initial data if empty
     init_kri_db(drop=False)
     init_rhi_db(drop=False)
 

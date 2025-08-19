@@ -1,12 +1,10 @@
 import os
-import json
 import sqlite3
 from contextlib import contextmanager
 from typing import Dict, Any, Optional, List
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'rhi.db')
-JSON_SEED = os.path.join(BASE_DIR, 'rhi-data.json')
 
 RHI_VALUE_FIELD_MAP: Dict[str, str] = {
     'rhi96': 'value',
@@ -55,18 +53,18 @@ def _insert_point(conn: sqlite3.Connection, rhi_id: str, period: str, value: flo
     )
 
 
-def seed_from_json(file_path: Optional[str] = None, clear_existing: bool = True) -> None:
-    path = file_path or JSON_SEED
-    if not os.path.exists(path):
-        return
-    with open(path, 'r', encoding='utf-8') as f:
-        payload = json.load(f)
+def seed_initial_data(clear_existing: bool = True) -> None:
+    """Seed initial RHI data directly into the database (no JSON usage)."""
     with get_conn() as conn:
         if clear_existing:
             conn.execute('DELETE FROM rhi_points')
-        for rhi_id, content in payload.items():
-            for item in content.get('data', []):
-                _insert_point(conn, rhi_id, item['period'], float(item.get('value') or 0.0))
+
+        def months_2024():
+            return [f"{m:02d}-2024" for m in range(1, 13)]
+
+        for rhi_id in ['rhi96', 'rhi97', 'rhi98', 'rhi102', 'rhi103', 'rhi104']:
+            for period in months_2024():
+                _insert_point(conn, rhi_id, period, 0.0)
 
 
 def upsert_data_point(rhi_id: str, period: str, value: float) -> None:

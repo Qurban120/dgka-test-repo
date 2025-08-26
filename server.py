@@ -311,7 +311,7 @@ async def api_get_kri_data():
     return fetch_all_kri()
 
 
-@app.get('/api/kri/{kri_id}')
+@app.get('/api/kri/item/{kri_id}')
 async def api_get_single_kri(kri_id: str):
     if kri_id not in KRI_VALUE_FIELD_MAP:
         raise HTTPException(status_code=400, detail='Unknown KRI id')
@@ -407,7 +407,7 @@ async def api_get_rhi_data():
     return fetch_all_rhi()
 
 
-@app.get('/api/rhi/{rhi_id}')
+@app.get('/api/rhi/item/{rhi_id}')
 async def api_get_single_rhi(rhi_id: str):
     if rhi_id not in RHI_VALUE_FIELD_MAP:
         raise HTTPException(status_code=400, detail='Unknown RHI id')
@@ -790,10 +790,7 @@ def respond_as_format(html: str, filename_stem: str, fmt: str) -> Response:
 
 @app.get('/api/kri/report')
 async def api_kri_report(year: Optional[str] = None, quarter: Optional[str] = None, format: Optional[str] = 'html'):
-    if quarter:
-        quarter = (quarter or '').upper()
-        if quarter not in {'Q1', 'Q2', 'Q3', 'Q4'}:
-            raise HTTPException(status_code=400, detail='quarter must be one of Q1,Q2,Q3,Q4')
+    quarter = (quarter or '').upper() or None
     dataset = fetch_all_kri()
     filtered = filter_kri_dataset_by_year_quarter(dataset, year, quarter)
     html = kri_report_html(filtered, year, quarter)
@@ -803,10 +800,7 @@ async def api_kri_report(year: Optional[str] = None, quarter: Optional[str] = No
 
 @app.get('/api/rhi/report')
 async def api_rhi_report(year: Optional[str] = None, quarter: Optional[str] = None, format: Optional[str] = 'html'):
-    if quarter:
-        quarter = (quarter or '').upper()
-        if quarter not in {'Q1', 'Q2', 'Q3', 'Q4'}:
-            raise HTTPException(status_code=400, detail='quarter must be one of Q1,Q2,Q3,Q4')
+    quarter = (quarter or '').upper() or None
     dataset = fetch_all_rhi()
     filtered = filter_rhi_dataset_by_year_quarter(dataset, year, quarter)
     html = rhi_report_html(filtered, year, quarter)

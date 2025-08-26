@@ -636,10 +636,15 @@ def kri_report_html(filtered: Dict[str, Any], year: Optional[str], quarter: Opti
         f'<h1>KRI Report{title_suffix}</h1>'
     ]
     for kri_id in sorted(filtered.keys()):
-        meta = KRI_METADATA.get(kri_id, {'name': kri_id, 'definition': '', 'threshold': ''})
+        meta = KRI_METADATA.get(kri_id, {'name': kri_id.upper(), 'definition': '', 'threshold': ''})
         content = filtered[kri_id]
         html_parts.append('<div class="kri-card">')
-        html_parts.append(f'<h2>{esc(meta.get("name", kri_id))} ({esc(kri_id.upper())})</h2>')
+        display_name = meta.get('name') or kri_id.upper()
+        if str(display_name).upper() == kri_id.upper():
+            header_text = esc(str(display_name))
+        else:
+            header_text = f"{esc(str(display_name))} ({esc(kri_id.upper())})"
+        html_parts.append(f'<h2>{header_text}</h2>')
         if meta.get('definition'):
             html_parts.append(f'<div class="meta"><b>Definition:</b> {esc(meta["definition"])}</div>')
         if meta.get('threshold'):

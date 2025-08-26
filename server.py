@@ -724,13 +724,14 @@ def respond_as_format(html: str, filename_stem: str, fmt: str) -> Response:
     elif fmt == 'pdf':
         try:
             from weasyprint import HTML as WeasyHTML
-            pdf_bytes = WeasyHTML(string=html).write_pdf()
+            pdf_bytes = WeasyHTML(string=html, base_url=BASE_DIR).write_pdf()
             return Response(
                 content=pdf_bytes,
                 media_type='application/pdf',
                 headers={'Content-Disposition': f'attachment; filename="{filename_stem}.pdf"'}
             )
         except Exception as e:
+            # Fallback: return an HTML notice explaining PDF generation failed
             fallback = f'<!-- PDF generation failed: {e} -->' + html
             return Response(
                 content=fallback,
@@ -750,25 +751,45 @@ def respond_as_format(html: str, filename_stem: str, fmt: str) -> Response:
             style = doc.styles['Normal']
             style.font.name = 'Arial'
             style.font.size = Pt(10)
-            if soup and soup.find('body'):
-                for el in soup.find('body').children:
-                    if getattr(el, 'name', None) in ['h1', 'h2', 'h3', 'p']:
-                        doc.add_paragraph(el.get_text())
-                    elif getattr(el, 'name', None) == 'table':
+            content_added = False
+            if soup:
+                body = soup.find('body') or soup
+                for el in body.descendants:
+                    name = getattr(el, 'name', None)
+                    if not name:
+                        continue
+                    if name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        text = el.get_text(' ', strip=True)
+                        if text:
+                            doc.add_paragraph(text)
+                            content_added = True
+                    elif name in ['p', 'div']:
+                        text = el.get_text(' ', strip=True)
+                        if text:
+                            doc.add_paragraph(text)
+                            content_added = True
+                    elif name == 'table':
                         rows = el.find_all('tr')
                         if rows:
                             cols = rows[0].find_all(['th','td'])
                             table = doc.add_table(rows=1, cols=len(cols))
                             hdr_cells = table.rows[0].cells
                             for i, c in enumerate(cols):
-                                hdr_cells[i].text = c.get_text()
+                                hdr_cells[i].text = c.get_text(' ', strip=True)
                             for r in rows[1:]:
                                 tds = r.find_all(['td','th'])
                                 row_cells = table.add_row().cells
                                 for i, c in enumerate(tds):
-                                    row_cells[i].text = c.get_text()
-                        doc.add_paragraph('')
-            else:
+                                    row_cells[i].text = c.get_text(' ', strip=True)
+                            doc.add_paragraph('')
+                            content_added = True
+                if not content_added:
+                    text = body.get_text('\n', strip=True)
+                    if text:
+                        doc.add_paragraph(text)
+                        content_added = True
+            if not soup or not content_added:
+                # Final fallback: dump raw HTML as text
                 doc.add_paragraph('Report')
                 doc.add_paragraph(html)
             from io import BytesIO

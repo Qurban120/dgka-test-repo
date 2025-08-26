@@ -751,47 +751,78 @@ def respond_as_format(html: str, filename_stem: str, fmt: str) -> Response:
             style = doc.styles['Normal']
             style.font.name = 'Arial'
             style.font.size = Pt(10)
+
+            def add_table_from_html(table_el):
+                rows = table_el.find_all('tr')
+                if not rows:
+                    return False
+                header_cells = rows[0].find_all(['th','td'])
+                table = doc.add_table(rows=1, cols=len(header_cells))
+                hdr_cells = table.rows[0].cells
+                for i, c in enumerate(header_cells):
+                    hdr_cells[i].text = c.get_text(' ', strip=True)
+                for r in rows[1:]:
+                    tds = r.find_all(['td','th'])
+                    row_cells = table.add_row().cells
+                    for i, c in enumerate(tds):
+                        if i < len(row_cells):
+                            row_cells[i].text = c.get_text(' ', strip=True)
+                doc.add_paragraph('')
+                return True
+
             content_added = False
             if soup:
-                body = soup.find('body') or soup
-                for el in body.descendants:
-                    name = getattr(el, 'name', None)
-                    if not name:
-                        continue
-                    if name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                        text = el.get_text(' ', strip=True)
-                        if text:
-                            doc.add_paragraph(text)
+                # Prefer structured export for KRI and RHI cards
+                kri_cards = soup.select('div.kri-card')
+                rhi_cards = soup.select('div.rhi-card')
+                if kri_cards:
+                    for card in kri_cards:
+                        h2 = card.find('h2')
+                        if h2:
+                            doc.add_paragraph(h2.get_text(' ', strip=True))
                             content_added = True
-                    elif name in ['p', 'div']:
-                        text = el.get_text(' ', strip=True)
-                        if text:
-                            doc.add_paragraph(text)
+                        # meta lines
+                        meta_divs = card.find_all('div', class_='meta')
+                        for m in meta_divs:
+                            text = m.get_text(' ', strip=True)
+                            if text:
+                                doc.add_paragraph(text)
+                                content_added = True
+                        # table
+                        table_el = card.find('table')
+                        if table_el:
+                            if add_table_from_html(table_el):
+                                content_added = True
+                elif rhi_cards:
+                    for card in rhi_cards:
+                        h2 = card.find('h2')
+                        if h2:
+                            doc.add_paragraph(h2.get_text(' ', strip=True))
                             content_added = True
-                    elif name == 'table':
-                        rows = el.find_all('tr')
-                        if rows:
-                            cols = rows[0].find_all(['th','td'])
-                            table = doc.add_table(rows=1, cols=len(cols))
-                            hdr_cells = table.rows[0].cells
-                            for i, c in enumerate(cols):
-                                hdr_cells[i].text = c.get_text(' ', strip=True)
-                            for r in rows[1:]:
-                                tds = r.find_all(['td','th'])
-                                row_cells = table.add_row().cells
-                                for i, c in enumerate(tds):
-                                    row_cells[i].text = c.get_text(' ', strip=True)
-                            doc.add_paragraph('')
-                            content_added = True
-                if not content_added:
-                    text = body.get_text('\n', strip=True)
-                    if text:
-                        doc.add_paragraph(text)
-                        content_added = True
+                        table_el = card.find('table')
+                        if table_el:
+                            if add_table_from_html(table_el):
+                                content_added = True
+                else:
+                    # Generic lightweight parsing: headings and tables only
+                    body = soup.find('body') or soup
+                    for el in body.descendants:
+                        name = getattr(el, 'name', None)
+                        if name in ['h1','h2','h3']:
+                            txt = el.get_text(' ', strip=True)
+                            if txt:
+                                doc.add_paragraph(txt)
+                                content_added = True
+                        elif name == 'table':
+                            if add_table_from_html(el):
+                                content_added = True
+
             if not soup or not content_added:
-                # Final fallback: dump raw HTML as text
+                # Final fallback: dump minimal text
                 doc.add_paragraph('Report')
+                doc.add_paragraph('Export produced no structured sections; raw HTML follows:')
                 doc.add_paragraph(html)
+
             from io import BytesIO
             buf = BytesIO()
             doc.save(buf)
